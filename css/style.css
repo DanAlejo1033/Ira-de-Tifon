@@ -610,6 +610,28 @@ html, body {
   margin-top: 1px;
 }
 
+.wave-btn:disabled,
+.wave-btn.cooldown {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+  border-color: #4b5563 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.4);
+  pointer-events: none;
+}
+
+.wave-btn:disabled .wave-btn-title,
+.wave-btn.cooldown .wave-btn-title {
+  color: #d1d5db;
+}
+
+.wave-btn:disabled .wave-btn-bonus,
+.wave-btn.cooldown .wave-btn-bonus {
+  color: #9ca3af !important;
+}
+
 /* Inspector Panel (Floating beside selected tower on canvas) */
 .inspector-panel {
   position: absolute !important;

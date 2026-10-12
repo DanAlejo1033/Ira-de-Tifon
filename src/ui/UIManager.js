@@ -546,19 +546,34 @@ export class UIManager {
       }
     });
 
-    // Actualizar botón de oleada según si hay combate en curso o se está en espera del jugador
-    if (!waveManager.isWaveActive) {
-      const nextWave = waveManager.currentWave + 1;
-      this.callWaveBtn.querySelector(".wave-btn-title").textContent = `INICIAR OLEADA ${nextWave}`;
-      this.waveBtnSubtitle.textContent = waveManager.currentWave === 0 ? "¡Prepara tus defensas!" : "Comenzar cuando estés listo";
-      this.callWaveBtn.style.background = "linear-gradient(135deg, #15803d 0%, #166534 100%)";
-      this.callWaveBtn.style.borderColor = "#22c55e";
+    // Actualizar botón de oleada según si está en cooldown o combate en curso
+    if (waveManager.callCooldown > 0) {
+      const remainingSec = waveManager.callCooldown.toFixed(1);
+      this.callWaveBtn.classList.add("cooldown");
+      this.callWaveBtn.disabled = true;
+      this.callWaveBtn.querySelector(".wave-btn-title").textContent = `ESPERA (${remainingSec}s)`;
+      this.waveBtnSubtitle.textContent = waveManager.isWaveActive ? "Oleada en marcha..." : "Preparando enemigos...";
+      this.callWaveBtn.style.background = "linear-gradient(135deg, #374151 0%, #1f2937 100%)";
+      this.callWaveBtn.style.borderColor = "#4b5563";
     } else {
-      const bonus = waveManager.getEarlyCallBonus();
-      this.callWaveBtn.querySelector(".wave-btn-title").textContent = "ADELANTAR OLEADA";
-      this.waveBtnSubtitle.textContent = `¡Riesgo! (+${bonus} 🪙)`;
-      this.callWaveBtn.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
-      this.callWaveBtn.style.borderColor = "#f59e0b";
+      this.callWaveBtn.classList.remove("cooldown");
+      if (!this.callWaveBtn.classList.contains("tutorial-locked")) {
+        this.callWaveBtn.disabled = false;
+      }
+
+      if (!waveManager.isWaveActive) {
+        const nextWave = waveManager.currentWave + 1;
+        this.callWaveBtn.querySelector(".wave-btn-title").textContent = `INICIAR OLEADA ${nextWave}`;
+        this.waveBtnSubtitle.textContent = waveManager.currentWave === 0 ? "¡Prepara tus defensas!" : "Comenzar cuando estés listo";
+        this.callWaveBtn.style.background = "linear-gradient(135deg, #15803d 0%, #166534 100%)";
+        this.callWaveBtn.style.borderColor = "#22c55e";
+      } else {
+        const bonus = waveManager.getEarlyCallBonus();
+        this.callWaveBtn.querySelector(".wave-btn-title").textContent = "ADELANTAR OLEADA";
+        this.waveBtnSubtitle.textContent = `¡Riesgo! (+${bonus} 🪙)`;
+        this.callWaveBtn.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
+        this.callWaveBtn.style.borderColor = "#f59e0b";
+      }
     }
 
     // Actualizar inspector si está abierto
@@ -915,7 +930,9 @@ export class UIManager {
     // 1. Botón de oleada
     if (locks.allowCallWave) {
       this.callWaveBtn.classList.remove("tutorial-locked");
-      this.callWaveBtn.disabled = false;
+      if (!this.callWaveBtn.classList.contains("cooldown")) {
+        this.callWaveBtn.disabled = false;
+      }
     } else {
       this.callWaveBtn.classList.add("tutorial-locked");
       this.callWaveBtn.disabled = true;
@@ -998,7 +1015,9 @@ export class UIManager {
   clearTutorialLocks() {
     this.activeTutorialLocks = null;
     this.callWaveBtn.classList.remove("tutorial-locked");
-    this.callWaveBtn.disabled = false;
+    if (!this.callWaveBtn.classList.contains("cooldown")) {
+      this.callWaveBtn.disabled = false;
+    }
 
     this.pauseBtn.classList.remove("tutorial-locked");
     this.pauseBtn.disabled = false;

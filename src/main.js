@@ -191,9 +191,18 @@ class Game {
       },
       onTriggerWave: () => {
         if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
-        this.waveManager.triggerNextWave();
-        if (this.tutorial && this.tutorial.isActive) {
-          this.tutorial.onWaveStarted(this.waveManager.currentWave);
+        if (!this.waveManager.canTriggerNextWave()) return;
+        const wasActive = this.waveManager.isWaveActive;
+        const triggered = this.waveManager.triggerNextWave();
+        if (triggered) {
+          const msg = wasActive
+            ? `⚔️ ¡Oleada ${this.waveManager.currentWave} adelantada!`
+            : `🛡️ ¡Oleada ${this.waveManager.currentWave} en camino!`;
+          this.ui.showAthenaMessage(msg, 2000);
+
+          if (this.tutorial && this.tutorial.isActive) {
+            this.tutorial.onWaveStarted(this.waveManager.currentWave);
+          }
         }
       },
       onUpgradeTower: (tower) => {

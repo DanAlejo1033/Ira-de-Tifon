@@ -23,6 +23,7 @@ export const BALANCE = {
   EARLY_WAVE_BASE_RATIO: 0.10,    // 10% del valor de la recompensa de la oleada entrante (premio mínimo garantizado)
   EARLY_WAVE_CHAOS_MAX_RATIO: 0.35, // Hasta +35% adicional de bonus si el camino está congestionado
   EARLY_CHAOS_HP_THRESHOLD: 0.15, // Si queda menos del 15% de HP total en pantalla, el bonus de caos es 0 (evita exploit del último enemigo moribundo)
+  WAVE_CALL_COOLDOWN: 5.0,        // Cooldown de 5 segundos para llamar o adelantar nueva oleada (evita spam y sobrecarga)
   
   // Venta y mejoras de torres
   SELL_REFUND_RATIO: 0.7,     // Recupera el 70% del valor invertido
