@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gigantomaquia: Tower Defense Mitológico</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Metamorphous&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Tutorial Spotlight Dimming Backdrop -->
+    <div id="tutorial-spotlight-backdrop" class="tutorial-spotlight-backdrop hidden"></div>
+
+    <!-- Top HUD Bar -->
+    <header id="hud-top">
+      <div class="hud-group">
+        <div class="stat-badge gold-badge" title="Dracmas de Oro">
+          <span class="icon">🪙</span>
+          <span id="gold-display" class="stat-value">250</span>
+        </div>
+        <button id="test-gold-btn" class="hud-btn test-gold-btn" title="Añadir 10,000 Oro para pruebas de balance">+10,000 🪙</button>
+        <div class="stat-badge lives-badge" title="Vidas del Monte Olimpo">
+          <span class="icon">🏛️</span>
+          <span id="lives-display" class="stat-value">20</span>
+        </div>
+      </div>
+
+      <div class="hud-group center-group">
+        <div class="stat-badge wave-badge">
+          <span class="label">OLEADA</span>
+          <span id="wave-display" class="stat-value">1</span>
+        </div>
+        <div class="stat-badge enemies-badge" title="Monstruos vencidos en la batalla">
+          <span class="label">DERROTADOS</span>
+          <span id="enemies-display" class="stat-value">0</span>
+        </div>
+      </div>
+
+      <div class="hud-group">
+        <button id="speed-btn" class="hud-btn" title="Velocidad del juego (1x / 2x / 3x / 5x)">
+          <span id="speed-label">1x ⏩</span>
+        </button>
+        <button id="pause-btn" class="hud-btn" title="Pausar / Reanudar">
+          <span id="pause-icon">⏸️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Notification / Athena Whisper & Tutorial Guidance Banner (Z-index 100, always above backdrop) -->
+    <div id="athena-banner" class="hidden">
+      <div class="athena-avatar">🦉</div>
+      <div class="athena-content">
+        <div class="athena-header-row">
+          <span class="athena-name">Atenea:</span>
+          <span id="athena-step-badge" class="athena-badge hidden">Paso 1 de 5</span>
+        </div>
+        <p id="athena-text">¡Los monstruos de Tifón marchan hacia el Olimpo! Coloca la ballesta de Hércules en las colinas.</p>
+        <div id="athena-actions" class="athena-actions hidden">
+          <button id="athena-next-btn" class="athena-action-btn primary">Siguiente ➔</button>
+          <button id="athena-skip-btn" class="athena-action-btn secondary" title="Omitir tutorial">Omitir ✖</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <main id="canvas-wrapper">
+      <canvas id="game-canvas" width="1024" height="640"></canvas>
+
+      <!-- Floating Tower Inspector / Upgrade Window (Beside the tower) -->
+      <div id="inspector-panel" class="inspector-panel hidden">
+        <div class="inspector-header">
+          <span id="inspect-name" class="inspect-title">Hércules (Nivel 1)</span>
+          <button id="close-inspect-btn" class="close-btn" title="Cerrar ventana">✖</button>
+        </div>
+        <div class="inspect-stats">
+          <div class="stat-row"><span>Daño:</span> <b id="inspect-damage">18</b></div>
+          <div class="stat-row"><span>Rango:</span> <b id="inspect-range">150</b></div>
+          <div class="stat-row"><span>Cadencia:</span> <b id="inspect-speed">1.2/s</b></div>
+        </div>
+        <div class="inspect-actions">
+          <button id="upgrade-tower-btn" class="inspect-btn upgrade-btn">
+            Nivel (🪙 <span id="upgrade-cost">35</span>)
+          </button>
+          <button id="evolve-tower-btn" class="inspect-btn evolve-btn">
+            Forma 2 (🪙 <span id="evolve-cost">90</span>)
+          </button>
+
+          <!-- Opciones de rama para Ares Forma 2 (A elegir, permanente) -->
+          <div id="ares-branch-container" class="ares-branch-container hidden">
+            <span class="ares-branch-title">Evolución F2 (Rama permanente):</span>
+            <div class="ares-branch-buttons">
+              <button id="ares-shrapnel-btn" class="inspect-btn ares-branch-btn shrapnel-btn" title="Desata esquirlas afiladas radiales al impactar el mortero">
+                💥 Esquirlas (🪙 <span id="ares-shrapnel-cost">90</span>)
+              </button>
+              <button id="ares-mines-btn" class="inspect-btn ares-branch-btn mines-btn" title="Siembra bombas/minas terrestres de proximidad en el camino">
+                💣 Bombas (🪙 <span id="ares-mines-cost">90</span>)
+              </button>
+            </div>
+          </div>
+
+          <button id="sell-tower-btn" class="inspect-btn sell-btn">
+            Vender (+🪙 <span id="sell-refund">35</span>)
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Controls & Towers Bar -->
+    <footer id="hud-bottom">
+      <!-- Power Divine Slot (Habilidad Activa) -->
+      <div id="power-hud-container" class="power-hud-container">
+        <div class="section-title">HABILIDAD</div>
+        <button id="btn-cast-power" class="power-hud-card" title="Invocar Habilidad Divina [Q / Clic]">
+          <div class="power-hud-icon" id="hud-power-icon">🌿</div>
+          <div class="power-hud-info">
+            <span class="power-hud-name" id="hud-power-name">Deméter</span>
+            <span class="power-hud-cost" id="hud-power-cost">🪙 15</span>
+          </div>
+          <div id="hud-power-cooldown" class="power-cooldown-overlay hidden">
+            <span id="hud-cooldown-text">10s</span>
+          </div>
+        </button>
+      </div>
+
+      <div id="towers-selector">
+        <div class="section-title">TORRES OLÍMPICAS</div>
+        <div class="towers-grid">
+          <!-- Hercules (Active) -->
+          <button class="tower-card active-tower" data-tower="HERCULES" id="btn-hercules">
+            <div class="tower-icon">🏹</div>
+            <div class="tower-info">
+              <span class="tower-name">Hércules</span>
+              <span class="tower-cost">🪙 50</span>
+            </div>
+            <div class="tower-role">Cadencia & Disparo</div>
+          </button>
+
+          <!-- Zeus -->
+          <button class="tower-card active-tower" data-tower="ZEUS" id="btn-zeus">
+            <div class="tower-icon">⚡</div>
+            <div class="tower-info">
+              <span class="tower-name">Zeus</span>
+              <span class="tower-cost">🪙 75</span>
+            </div>
+            <div class="tower-role">Rayo Fulminante</div>
+          </button>
+
+          <!-- Ares -->
+          <button class="tower-card active-tower" data-tower="ARES" id="btn-ares">
+            <div class="tower-icon">⚔️</div>
+            <div class="tower-info">
+              <span class="tower-name">Ares</span>
+              <span class="tower-cost">🪙 80</span>
+            </div>
+            <div class="tower-role">Daño en Área</div>
+          </button>
+
+          <!-- Hades -->
+          <button class="tower-card active-tower" data-tower="HADES" id="btn-hades">
+            <div class="tower-icon">💀</div>
+            <div class="tower-info">
+              <span class="tower-name">Hades</span>
+              <span class="tower-cost">🪙 90</span>
+            </div>
+            <div class="tower-role">Rayo Infernal</div>
+          </button>
+
+          <!-- Poseidon -->
+          <button class="tower-card active-tower" data-tower="POSEIDON" id="btn-poseidon">
+            <div class="tower-icon">🔱</div>
+            <div class="tower-info">
+              <span class="tower-name">Poseidón</span>
+              <span class="tower-cost">🪙 60</span>
+            </div>
+            <div class="tower-role">Ralentización</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Wave Call Button with early bonus preview -->
+      <div id="wave-control">
+        <button id="call-wave-btn" class="wave-btn">
+          <div class="wave-btn-title">INICIAR OLEADA</div>
+          <div id="wave-btn-subtitle" class="wave-btn-bonus">+15 Dracmas de bono</div>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-icon">⚡</span>
+          <h2>¡EL OLIMPO HA CAÍDO!</h2>
+          <p>Tifón y los Gigantes han vencido en esta batalla.</p>
+        </div>
+        <div class="modal-stats">
+          <div class="stat-box">
+            <span class="label">Oleada Alcanzada</span>
+            <span id="go-wave-reached" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Total de Dracmas</span>
+            <span id="go-gold-earned" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Enemigos Vencidos</span>
+            <span id="go-enemies-killed" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Partidas Jugadas</span>
+            <span id="go-games-count" class="value">0</span>
+          </div>
+        </div>
+        <div class="modal-footer modal-actions-row">
+          <button id="restart-game-btn" class="action-btn">VOLVER A LUCHAR</button>
+          <button id="gameover-menu-btn" class="action-btn secondary-btn">SALIR AL MENÚ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pause-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-icon">⏸️</span>
+          <h2>JUEGO EN PAUSA</h2>
+          <p>La batalla de la Gigantomaquia se ha detenido.</p>
+        </div>
+        <div class="pause-menu-actions">
+          <button id="resume-game-btn" class="action-btn menu-btn">REANUDAR</button>
+          <button id="restart-from-pause-btn" class="action-btn menu-btn secondary-btn">REINICIAR PARTIDA</button>
+          <button id="exit-menu-btn" class="action-btn menu-btn outline-btn">SALIR AL MENÚ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Menu Modal (Pantalla de Inicio) -->
+    <div id="main-menu-modal" class="modal-overlay menu-overlay">
+      <div class="menu-card siege-menu-card">
+        <!-- 1. Nombre (Cabecera provisional estilizada) -->
+        <div class="menu-hero-header">
+          <div class="menu-header-emblem">⚡ 🏛️ ⚡</div>
+          <h1 class="menu-title">GIGANTOMAQUIA</h1>
+          <p class="menu-subtitle">DEFENSA DEL MONTE OLIMPO</p>
+        </div>
+
+        <!-- 2. Caja Central del Mapa con listón/pestaña superior "Mapa" -->
+        <div class="menu-map-box">
+          <div class="menu-map-tab">
+            <span class="map-tab-icon">🗺️</span> MAPA: MONTE OLIMPO
+          </div>
+          <div class="menu-map-preview-wrap">
+            <canvas id="menu-map-preview" width="352" height="220"></canvas>
+            <div class="map-preview-tag">CAMINO DE FLEGRA</div>
+          </div>
+          <div class="menu-map-score-row">
+            <div class="menu-score-box">
+              <span class="score-label">RÉCORD MÁXIMO</span>
+              <span id="menu-record-wave" class="score-value">Oleada 0</span>
+            </div>
+            <div class="menu-score-box">
+              <span class="score-label">ENEMIGOS DERROTADOS</span>
+              <span id="menu-record-kills" class="score-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Puntero indicador tras el prólogo -->
+        <div id="menu-play-pointer" class="menu-play-pointer hidden">👇 ¡Haz clic en JUGAR para defender el Olimpo!</div>
+
+        <!-- 3. Botones debajo del mapa: Habilidades (izq) y Jugar (der) -->
+        <div class="menu-primary-actions-row">
+          <button id="menu-codex-btn" class="menu-action-btn skill-action" title="Seleccionar la bendición de un dios olímpico para la batalla">
+            <span class="menu-btn-icon" id="menu-skill-icon">🌿</span>
+            <div class="menu-btn-text">
+              <span class="menu-btn-title">HABILIDADES</span>
+              <span class="menu-btn-desc" id="menu-skill-desc">Deméter (Equipado)</span>
+            </div>
+          </button>
+
+          <button id="menu-play-btn" class="menu-action-btn play-action" title="Iniciar la defensa infinita del Monte Olimpo">
+            <span class="menu-btn-icon">⚔️</span>
+            <div class="menu-btn-text">
+              <span class="menu-btn-title">JUGAR</span>
+              <span class="menu-btn-desc">Batalla Infinita</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- 4. Barra inferior: Acceso a estadísticas y registros -->
+        <div class="menu-bottom-row">
+          <div class="menu-footer-info">
+            <span class="menu-footer-badge">Monte Olimpo · Modo Arcade Infinito</span>
+          </div>
+          <div class="menu-extra-group">
+            <button id="menu-stats-btn" class="menu-mini-btn stats-test" title="Ver registros y estadísticas">
+              🏆 Récords & Proezas
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lore Modal (Historia Inicial de la Gigantomaquia) -->
+    <div id="lore-modal" class="modal-overlay hidden">
+      <div class="modal-card lore-card">
+        <div class="modal-header">
+          <span class="modal-icon">🏛️</span>
+          <h2>EL DESPERTAR DE TIFÓN</h2>
+          <p class="lore-subtitle">Crónica de la Gigantomaquia</p>
+        </div>
+        <div class="lore-body">
+          <p>En lo más oscuro del <b>Tártaro</b>, <b>Tifón</b> —el padre de todos los monstruos— ha roto sus cadenas milenarias. Clamando venganza contra los cielos, ha desatado una horda de gigantes de piedra, arpías aladas y cíclopes que marchan hacia las puertas sagradas del <b>Monte Olimpo</b>.</p>
+          <p>Los dioses responderán con su poder divino, pero necesitan a un estratega mortal que dirija las defensas del santuario.</p>
+          <div class="lore-athena-note">
+            🦉 <b>Atenea:</b> <i>"Desciendo para instruirte en el arte de la guerra olímpica. Dirige a nuestros campeones, mortal, y no dejes que el Olimpo caiga."</i>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="close-lore-btn" class="action-btn">COMENZAR LA DEFENSA ➔</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dedicated Powers Selection Screen (Cambio de Pantalla desde Menú Principal) -->
+    <div id="powers-screen" class="powers-screen-container hidden">
+      <!-- Top Navigation & Header Bar -->
+      <div class="powers-screen-topbar">
+        <button id="btn-powers-back" class="screen-nav-btn back-btn" title="Volver al Menú Principal">
+          <span class="btn-arrow">⬅</span> ATRÁS
+        </button>
+        <div class="powers-screen-header-text">
+          <h2 class="powers-screen-title">⚡ ALTAR DE HABILIDADES DIVINAS</h2>
+          <p class="powers-screen-subtitle">Selecciona el dios olímpico que te bendecirá en la batalla. Actívalo en combate con [Q / Clic].</p>
+        </div>
+        <button id="btn-powers-done" class="screen-nav-btn done-btn" title="Confirmar y Volver al Menú">
+          HECHO <span class="btn-arrow">✓</span>
+        </button>
+      </div>
+
+      <!-- 5 God Selection Cards Grid en orden de desbloqueo -->
+      <div class="powers-screen-cards-grid">
+        <!-- 1. Hera (1ª Habilidad - 5 partidas) -->
+        <div class="power-god-card" data-power="HERA">
+          <div class="god-card-badge">🦚 REINA DEL OLIMPO</div>
+          <div class="god-card-avatar" style="--god-color: #ec4899;">
+            <span class="god-card-emoji">🦚</span>
+          </div>
+          <h3 class="god-card-title">HERA</h3>
+          <span class="god-card-role" style="color: #f472b6;">Cólera Celestial & Daño %</span>
+          <div class="god-card-stats-row">
+            <span class="god-stat-chip">🪙 20</span>
+            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🎯 105px</span>
+          </div>
+          <p class="god-card-desc">Descarga una esfera de fuego celestial. Inflige 30% de vida máxima a monstruos (20% a gigantes y tanques).</p>
+          <div class="god-card-quote">"¡La Reina del Olimpo fulmina a los insolentes!"</div>
+          <button class="god-card-equip-btn" data-power="HERA">EQUIPAR</button>
+        </div>
+
+        <!-- 2. Artemisa (2ª Habilidad - 15 partidas) -->
+        <div class="power-god-card" data-power="ARTEMISA">
+          <div class="god-card-badge">🏹 CAZADORA DIVINA</div>
+          <div class="god-card-avatar" style="--god-color: #38bdf8;">
+            <span class="god-card-emoji">🏹</span>
+          </div>
+          <h3 class="god-card-title">ARTEMISA</h3>
+          <span class="god-card-role" style="color: #38bdf8;">Diana & Vulnerabilidad</span>
+          <div class="god-card-stats-row">
+            <span class="god-stat-chip">🪙 15</span>
+            <span class="god-stat-chip">⏱️ 10s CD</span>
+            <span class="god-stat-chip">🎯 105px</span>
+          </div>
+          <p class="god-card-desc">Zona estelar de 3.5s que marca a los enemigos. Los monstruos marcados reciben un +20% de daño durante 4s.</p>
+          <div class="god-card-quote">"¡La flecha de Artemisa señala la debilidad del enemigo!"</div>
+          <button class="god-card-equip-btn" data-power="ARTEMISA">EQUIPAR</button>
+        </div>
+
+        <!-- 3. Deméter (3ª Habilidad - 25 partidas) -->
+        <div class="power-god-card" data-power="DEMETER">
+          <div class="god-card-badge">🌿 DIOSA DE LA TIERRA</div>
+          <div class="god-card-avatar" style="--god-color: #22c55e;">
+            <span class="god-card-emoji">🌿</span>
+          </div>
+          <h3 class="god-card-title">DEMÉTER</h3>
+          <span class="god-card-role" style="color: #4ade80;">Zarzas & Aturdimiento</span>
+          <div class="god-card-stats-row">
+            <span class="god-stat-chip">🪙 15</span>
+            <span class="god-stat-chip">⏱️ 10s CD</span>
+            <span class="god-stat-chip">🎯 95px</span>
+          </div>
+          <p class="god-card-desc">Siembra un campo de zarzas sagradas durante 3.5s. Aturde durante 1.5s a cada monstruo que cruce la zona.</p>
+          <div class="god-card-quote">"¡Que la Madre Tierra sujete y paralice a los gigantes!"</div>
+          <button class="god-card-equip-btn" data-power="DEMETER">EQUIPAR</button>
+        </div>
+
+        <!-- 4. Hermes (4ª Habilidad - 35 partidas) -->
+        <div class="power-god-card" data-power="HERMES">
+          <div class="god-card-badge">🪽 BENDICIÓN GLOBAL</div>
+          <div class="god-card-avatar" style="--god-color: #facc15;">
+            <span class="god-card-emoji">🪽</span>
+          </div>
+          <h3 class="god-card-title">HERMES</h3>
+          <span class="god-card-role" style="color: #facc15;">Oro Global (+50%)</span>
+          <div class="god-card-stats-row">
+            <span class="god-stat-chip">🪙 15</span>
+            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🌐 GLOBAL (6s)</span>
+          </div>
+          <p class="god-card-desc">Bendición global durante 6s: todos los enemigos derrotados en el campo de batalla otorgan un +50% de Dracmas de oro.</p>
+          <div class="god-card-quote">"¡El oro y la fortuna vuelan veloces al tesoro del Olimpo!"</div>
+          <button class="god-card-equip-btn" data-power="HERMES">EQUIPAR</button>
+        </div>
+
+        <!-- 5. Cronos (5ª Habilidad - 45 partidas) -->
+        <div class="power-god-card" data-power="CRONOS">
+          <div class="god-card-badge">⏳ PODER GLOBAL</div>
+          <div class="god-card-avatar" style="--god-color: #a855f7;">
+            <span class="god-card-emoji">⏳</span>
+          </div>
+          <h3 class="god-card-title">CRONOS</h3>
+          <span class="god-card-role" style="color: #c084fc;">Cadencia Global (+50%)</span>
+          <div class="god-card-stats-row">
+            <span class="god-stat-chip">🪙 20</span>
+            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🌐 GLOBAL (6s)</span>
+          </div>
+          <p class="god-card-desc">Distorsión temporal global durante 6s: aumenta un +50% la velocidad de disparo y cadencia de todas las torres olímpicas.</p>
+          <div class="god-card-quote">"¡El Titán del Tiempo acelera el castigo del Olimpo!"</div>
+          <button class="god-card-equip-btn" data-power="CRONOS">EQUIPAR</button>
+        </div>
+      </div>
+
+      <!-- Bottom Navigation Bar -->
+      <div class="powers-screen-bottombar">
+        <button id="btn-powers-back-bottom" class="screen-nav-btn back-btn" title="Volver al Menú Principal">
+          <span class="btn-arrow">⬅</span> ATRÁS
+        </button>
+        <div class="powers-screen-status">
+          Bendición activa: <span id="powers-equipped-status-text" class="status-name">🌿 Deméter</span>
+        </div>
+        <button id="btn-powers-done-bottom" class="screen-nav-btn done-btn" title="Confirmar y Volver al Menú">
+          HECHO <span class="btn-arrow">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats & Progress Modal -->
+    <div id="stats-modal" class="modal-overlay hidden">
+      <div class="modal-card stats-card">
+        <div class="modal-header stats-modal-header">
+          <button id="btn-stats-back-top" class="screen-nav-btn back-btn modal-top-back-btn" title="Volver al Menú Principal">
+            <span class="btn-arrow">⬅</span> ATRÁS
+          </button>
+          <span class="modal-icon">🏆</span>
+          <h2>RÉCORDS Y PROGRESO DEL OLIMPO</h2>
+          <p>Tu legado como estratega frente a las huestes de Tifón.</p>
+        </div>
+        <div class="stats-overview-grid">
+          <div class="stat-box">
+            <span class="label">Partidas Jugadas</span>
+            <span id="st-games-count" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Oleada Récord</span>
+            <span id="st-highest-wave" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Monstruos Derrotados</span>
+            <span id="st-enemies-killed" class="value">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Tutorial de Atenea</span>
+            <span id="st-tutorial-status" class="value highlight-val">Pendiente</span>
+          </div>
+        </div>
+        <div class="powers-unlock-box">
+          <div class="powers-unlock-header">
+            <span class="icon">🌿</span>
+            <b>Progreso de Bendiciones Divinas:</b>
+          </div>
+          <p id="st-powers-desc">Se desbloquea al completar 5 partidas según las leyes divinas del Olimpo.</p>
+        </div>
+        <div class="modal-footer modal-actions-row">
+          <button id="close-stats-btn" class="action-btn done-btn">HECHO ✓</button>
+          <button id="reset-progress-btn" class="action-btn outline-btn" title="Borrar datos guardados">🗑️ REINICIAR DATOS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entry Script -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
