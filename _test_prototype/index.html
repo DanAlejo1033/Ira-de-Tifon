@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Ira de Tifón [Test Prototype]: Tower Defense</title>
+  <title>Ira de Tifón: Tower Defense</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
           <span class="icon">🪙</span>
           <span id="gold-display" class="stat-value">250</span>
         </div>
-        <button id="test-gold-btn" class="hud-btn test-gold-btn" title="Añadir 10,000 Oro para pruebas de balance">+10,000 🪙</button>
+        <button id="test-gold-btn" class="hud-btn test-gold-btn hidden-mode" title="Añadir 10,000 Oro para pruebas de balance">+10,000 🪙</button>
         <div class="stat-badge lives-badge" title="Vidas del Monte Olimpo">
           <span class="icon">🏛️</span>
           <span id="lives-display" class="stat-value">20</span>
@@ -251,6 +251,21 @@
           <p class="menu-subtitle">DEFENSA DEL MONTE OLIMPO</p>
         </div>
 
+        <!-- Selector de Modo de Juego (Historia vs Pruebas) -->
+        <div class="menu-mode-section">
+          <div class="menu-mode-selector" role="tablist" aria-label="Selector de Modo de Juego">
+            <button id="mode-story-btn" class="menu-mode-tab active" data-mode="NORMAL" title="Modo Historia: Progresión por mérito, bendiciones divinas por desbloqueo y juego legítimo">
+              <span class="mode-tab-icon">🛡️</span>
+              <span class="mode-tab-text">MODO HISTORIA</span>
+            </button>
+            <button id="mode-sandbox-btn" class="menu-mode-tab" data-mode="SANDBOX" title="Modo Pruebas / Sandbox: Todas las bendiciones y botón de oro (+10,000) disponibles">
+              <span class="mode-tab-icon">🧪</span>
+              <span class="mode-tab-text">MODO PRUEBAS</span>
+            </button>
+          </div>
+          <p id="menu-mode-desc" class="menu-mode-desc">Progresión legítima · Desbloqueo de bendiciones divinas</p>
+        </div>
+
         <!-- 2. Caja Central del Mapa con listón/pestaña superior "Mapa" -->
         <div class="menu-map-box">
           <div class="menu-map-tab">
@@ -258,7 +273,7 @@
           </div>
           <div class="menu-map-preview-wrap">
             <canvas id="menu-map-preview" width="352" height="220"></canvas>
-            <div class="map-preview-tag">CAMINO DE FLEGRA</div>
+            <div id="map-preview-tag" class="map-preview-tag">CAMINO DE FLEGRA · HISTORIA</div>
           </div>
           <div class="menu-map-score-row">
             <div class="menu-score-box">
@@ -314,7 +329,7 @@
         <div class="modal-header">
           <span class="modal-icon">🏛️</span>
           <h2>EL DESPERTAR DE TIFÓN</h2>
-          <p class="lore-subtitle">Crónica de la Gigantomaquia</p>
+          <p class="lore-subtitle">Crónica de la Ira de Tifón</p>
         </div>
         <div class="lore-body">
           <p>En lo más oscuro del <b>Tártaro</b>, <b>Tifón</b> —el padre de todos los monstruos— ha roto sus cadenas milenarias. Clamando venganza contra los cielos, ha desatado una horda de gigantes de piedra, arpías aladas y cíclopes que marchan hacia las puertas sagradas del <b>Monte Olimpo</b>.</p>

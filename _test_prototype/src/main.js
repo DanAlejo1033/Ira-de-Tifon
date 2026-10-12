@@ -17,6 +17,7 @@ import { Tower } from './entities/Tower.js';
 import { UIManager } from './ui/UIManager.js';
 import { TutorialManager } from './systems/TutorialManager.js';
 import { PowerManager } from './systems/PowerManager.js';
+import { POWERS_DATA } from './config/powersData.js';
 
 class Game {
   constructor() {
@@ -27,6 +28,9 @@ class Game {
     this.economy = new EconomyManager();
     this.progress = new ProgressManager();
     this.powerManager = new PowerManager(this.economy, this.progress, this.particles);
+
+    const savedMode = localStorage.getItem("gigantomaquia_game_mode") || "NORMAL";
+    this.gameMode = savedMode === "SANDBOX" ? "SANDBOX" : "NORMAL";
 
     this.gameState = "MENU"; // "MENU" | "PLAYING"
     this.towersList = [];
@@ -63,10 +67,13 @@ class Game {
 
     // Gestor de Interfaz de Usuario
     this.ui = new UIManager({
+      onSelectGameMode: (mode) => {
+        this.setGameMode(mode);
+      },
       onStartGame: () => {
         this.ui.setMenuGuidedPlay(false);
-        // Si es la primera vez que juega y no ha completado el tutorial, Atenea lo guía
-        if (this.progress.getGamesPlayed() === 0 && !this.progress.isTutorialCompleted()) {
+        // Si es la primera vez que juega en modo historia y no ha completado el tutorial, Atenea lo guía
+        if (this.gameMode === "NORMAL" && this.progress.getGamesPlayed() === 0 && !this.progress.isTutorialCompleted()) {
           this.startBattle(true);
         } else {
           this.startBattle(false);
@@ -87,8 +94,28 @@ class Game {
       },
       onResetProgress: () => {
         this.progress.resetProgress();
+        this.powerManager.reset();
+        const isSandbox = this.gameMode === "SANDBOX";
+        if (isSandbox && !this.powerManager.equippedPowerId) {
+          this.powerManager.setEquippedPower("DEMETER", true);
+        }
         this.ui.updateStatsModal(this.progress.data);
         this.ui.updateMenuStats(this.progress.data);
+        this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
+        this.ui.updateAltarPowers(
+          this.powerManager.equippedPowerId,
+          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+          isSandbox ? 999 : this.progress.getGamesPlayed(),
+          isSandbox
+        );
+        this.ui.updatePowerHud(
+          this.powerManager.getEquippedPowerConfig(),
+          this.powerManager.cooldownRemaining,
+          this.economy.gold,
+          this.powerManager.isTargeting,
+          this.waveManager.isWaitingNextWave,
+          this.powerManager.activeEffectRemaining
+        );
         this.ui.setMenuGuidedPlay(false);
         this.ui.showAthenaMessage("Progreso reiniciado. ¡Un nuevo comienzo para el Olimpo!");
       },
@@ -96,13 +123,31 @@ class Game {
         this.exitToMenu();
       },
       onOpenCodex: () => {
-        this.ui.openPowersScreen(this.powerManager.equippedPowerId);
+        const isSandbox = this.gameMode === "SANDBOX";
+        this.ui.openPowersScreen(
+          this.powerManager.equippedPowerId,
+          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+          isSandbox ? 999 : this.progress.getGamesPlayed(),
+          isSandbox
+        );
       },
       onEquipPower: (powerId) => {
-        this.powerManager.setEquippedPower(powerId);
-        this.ui.updatePowersScreenCards(powerId);
+        const isSandbox = this.gameMode === "SANDBOX";
+        if (!isSandbox && !this.progress.isPowerUnlocked(powerId)) {
+          const conf = POWERS_DATA[powerId];
+          const remaining = Math.max(1, (conf ? conf.unlockGames : 0) - this.progress.getGamesPlayed());
+          this.ui.showAthenaMessage(`🔒 ${conf ? conf.god : powerId} está bloqueado. Requiere ${conf ? conf.unlockGames : 0} partidas jugadas (faltan ${remaining}).`, 3500);
+          return;
+        }
+        this.powerManager.setEquippedPower(powerId, isSandbox);
+        this.ui.updatePowersScreenCards(
+          powerId,
+          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+          isSandbox ? 999 : this.progress.getGamesPlayed(),
+          isSandbox
+        );
         const conf = this.powerManager.getEquippedPowerConfig();
-        this.ui.updateMenuEquippedPower(conf);
+        this.ui.updateMenuEquippedPower(conf, isSandbox);
         this.ui.updatePowerHud(
           conf,
           this.powerManager.cooldownRemaining,
@@ -193,6 +238,7 @@ class Game {
         this.ui.closePauseModal();
       },
       onAddTestGold: (amount) => {
+        if (this.gameMode !== "SANDBOX") return;
         this.economy.addGold(amount);
         this.ui.updateHUD(this.economy, this.waveManager);
         this.ui.showAthenaMessage(`¡Tesoro de prueba! +${amount.toLocaleString()} 🪙 concedidos.`, 2500);
@@ -211,10 +257,28 @@ class Game {
 
     this.initCanvasInput();
 
+    // Sincronizar estado inicial del modo de juego
+    this.ui.setGameMode(this.gameMode);
+    const isSandboxInit = this.gameMode === "SANDBOX";
+    if (isSandboxInit) {
+      if (!this.powerManager.equippedPowerId) {
+        this.powerManager.setEquippedPower("DEMETER", true);
+      }
+    } else {
+      if (!this.progress.isPowerUnlocked(this.powerManager.equippedPowerId)) {
+        this.powerManager.setEquippedPower(null, false);
+      }
+    }
+
     // Mostrar Pantalla de Inicio / Menú Principal en el arranque
     this.ui.openMainMenu(this.progress.data);
-    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig());
-    this.ui.updateAltarPowers(this.powerManager.equippedPowerId);
+    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandboxInit);
+    this.ui.updateAltarPowers(
+      this.powerManager.equippedPowerId,
+      isSandboxInit ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+      isSandboxInit ? 999 : this.progress.getGamesPlayed(),
+      isSandboxInit
+    );
     this.ui.updatePowerHud(
       this.powerManager.getEquippedPowerConfig(),
       this.powerManager.cooldownRemaining,
@@ -244,6 +308,56 @@ class Game {
   }
 
   /**
+   * Alterna entre Modo Historia y Modo Pruebas (Sandbox).
+   */
+  setGameMode(mode) {
+    this.gameMode = mode === "SANDBOX" ? "SANDBOX" : "NORMAL";
+    try {
+      localStorage.setItem("gigantomaquia_game_mode", this.gameMode);
+    } catch (e) {
+      console.warn("No se pudo guardar modo en localStorage:", e);
+    }
+
+    const isSandbox = this.gameMode === "SANDBOX";
+
+    if (isSandbox) {
+      // En modo Sandbox, si no hay poder equipado, equipar Deméter
+      if (!this.powerManager.equippedPowerId) {
+        this.powerManager.setEquippedPower("DEMETER", true);
+      }
+    } else {
+      // En modo Historia, si el poder equipado no está desbloqueado legítimamente, desequiparlo
+      if (!this.progress.isPowerUnlocked(this.powerManager.equippedPowerId)) {
+        this.powerManager.setEquippedPower(null, false);
+      }
+    }
+
+    this.ui.setGameMode(this.gameMode);
+    const conf = this.powerManager.getEquippedPowerConfig();
+    this.ui.updateMenuEquippedPower(conf, isSandbox);
+    this.ui.updateAltarPowers(
+      this.powerManager.equippedPowerId,
+      isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+      isSandbox ? 999 : this.progress.getGamesPlayed(),
+      isSandbox
+    );
+    this.ui.updatePowerHud(
+      conf,
+      this.powerManager.cooldownRemaining,
+      this.economy.gold,
+      this.powerManager.isTargeting,
+      this.waveManager.isWaitingNextWave,
+      this.powerManager.activeEffectRemaining
+    );
+
+    if (isSandbox) {
+      this.ui.showAthenaMessage("🧪 Modo Pruebas activado: todas las bendiciones y +10,000 🪙 disponibles.", 3000);
+    } else {
+      this.ui.showAthenaMessage("🛡️ Modo Historia activado: progresión por mérito y batallas legítimas.", 3000);
+    }
+  }
+
+  /**
    * Inicia la batalla en el Monte Olimpo (en modo normal o tutorial interactivo).
    */
   startBattle(isTutorial = false) {
@@ -254,6 +368,9 @@ class Game {
     this.ui.setMenuGuidedPlay(false);
     this.restartGame();
 
+    // Asegurar visibilidad correcta del botón de oro según el modo de juego
+    this.ui.showTestGoldButton(this.gameMode === "SANDBOX");
+
     if (isTutorial) {
       this.tutorial.start(this);
     } else {
@@ -261,7 +378,8 @@ class Game {
       this.ui.clearTutorialLocks();
       this.ui.clearSpotlight();
       this.ui.hideAthenaBanner();
-      this.ui.showAthenaMessage("¡A la batalla! Coloca tus torres olímpicas y llama la primera oleada.");
+      const modeText = this.gameMode === "SANDBOX" ? " (Modo Pruebas)" : "";
+      this.ui.showAthenaMessage(`¡A la batalla${modeText}! Coloca tus torres olímpicas y llama la primera oleada.`);
     }
   }
 
@@ -281,7 +399,16 @@ class Game {
     this.ui.hideAthenaBanner();
     this.ui.closePauseModal();
     this.restartGame();
+    this.ui.setGameMode(this.gameMode);
+    const isSandbox = this.gameMode === "SANDBOX";
     this.ui.openMainMenu(this.progress.data);
+    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
+    this.ui.updateAltarPowers(
+      this.powerManager.equippedPowerId,
+      isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
+      isSandbox ? 999 : this.progress.getGamesPlayed(),
+      isSandbox
+    );
   }
 
   handleCardPointerDown(type, e) {
@@ -766,21 +893,51 @@ class Game {
 
   handleGameOver() {
     this.isGameOver = true;
-    const totalGames = this.progress.recordGameFinished(
-      this.waveManager.currentWave,
-      this.waveManager.totalEnemiesKilled
-    );
+    const isSandbox = this.gameMode === "SANDBOX";
 
-    if (this.tutorial && this.tutorial.isActive) {
-      this.tutorial.onGameOver();
+    if (!isSandbox) {
+      // Modo Historia: registrar progresión legítima y desbloquear poderes
+      const recordResult = this.progress.recordGameFinished(
+        this.waveManager.currentWave,
+        this.waveManager.totalEnemiesKilled
+      );
+      const totalGames = (typeof recordResult === "object" && recordResult.gamesPlayed !== undefined)
+        ? recordResult.gamesPlayed
+        : recordResult;
+
+      if (this.tutorial && this.tutorial.isActive) {
+        this.tutorial.onGameOver();
+      }
+
+      this.ui.showGameOver(
+        this.waveManager.currentWave,
+        this.economy.totalGoldEarned,
+        this.waveManager.totalEnemiesKilled,
+        totalGames,
+        false
+      );
+
+      if (recordResult && recordResult.newlyUnlocked && recordResult.newlyUnlocked.length > 0) {
+        const names = recordResult.newlyUnlocked.map(id => POWERS_DATA[id]?.god || id).join(", ");
+        setTimeout(() => {
+          this.ui.showAthenaMessage(`⚡ ¡HAS DESBLOQUEADO NUEVA(S) BENDICIÓN(ES): ${names}! Ya puedes equiparlas en el Menú Principal.`, 6000);
+        }, 600);
+      }
+    } else {
+      // Modo Sandbox: mostrar resultados sin alterar las estadísticas de historia
+      if (this.tutorial && this.tutorial.isActive) {
+        this.tutorial.onGameOver();
+      }
+
+      this.ui.showGameOver(
+        this.waveManager.currentWave,
+        this.economy.totalGoldEarned,
+        this.waveManager.totalEnemiesKilled,
+        this.progress.getGamesPlayed(),
+        true
+      );
+      this.ui.showAthenaMessage("🧪 Batalla de pruebas terminada. Tus récords de historia se mantienen intactos.", 4500);
     }
-
-    this.ui.showGameOver(
-      this.waveManager.currentWave,
-      this.economy.totalGoldEarned,
-      this.waveManager.totalEnemiesKilled,
-      totalGames
-    );
   }
 
   restartGame() {

@@ -78,6 +78,10 @@ export class UIManager {
     this.menuRecordWave = document.getElementById("menu-record-wave");
     this.menuRecordKills = document.getElementById("menu-record-kills");
     this.menuMapPreview = document.getElementById("menu-map-preview");
+    this.mapPreviewTag = document.getElementById("map-preview-tag");
+    this.modeStoryBtn = document.getElementById("mode-story-btn");
+    this.modeSandboxBtn = document.getElementById("mode-sandbox-btn");
+    this.menuModeDesc = document.getElementById("menu-mode-desc");
 
     // Modal Lore / Prólogo Inicial
     this.loreModal = document.getElementById("lore-modal");
@@ -333,6 +337,22 @@ export class UIManager {
     });
 
     // Acciones del Menú Principal (Etapa 6)
+    if (this.modeStoryBtn) {
+      this.modeStoryBtn.addEventListener("click", () => {
+        if (this.handlers.onSelectGameMode) {
+          this.handlers.onSelectGameMode("NORMAL");
+        }
+      });
+    }
+
+    if (this.modeSandboxBtn) {
+      this.modeSandboxBtn.addEventListener("click", () => {
+        if (this.handlers.onSelectGameMode) {
+          this.handlers.onSelectGameMode("SANDBOX");
+        }
+      });
+    }
+
     this.menuPlayBtn.addEventListener("click", () => {
       if (this.handlers.onStartGame) {
         this.handlers.onStartGame();
@@ -719,12 +739,61 @@ export class UIManager {
     }
   }
 
-  showGameOver(wave, gold, kills, games) {
+  showGameOver(wave, gold, kills, games, isSandbox = false) {
     this.goWave.textContent = wave;
     this.goGold.textContent = gold;
     this.goKills.textContent = kills;
-    this.goGames.textContent = games;
+    this.goGames.textContent = isSandbox ? `${games} (Pruebas)` : games;
     this.gameOverModal.classList.remove("hidden");
+  }
+
+  setGameMode(mode = "NORMAL") {
+    const isSandbox = mode === "SANDBOX";
+    if (this.modeStoryBtn) {
+      if (!isSandbox) {
+        this.modeStoryBtn.classList.add("active");
+      } else {
+        this.modeStoryBtn.classList.remove("active");
+      }
+    }
+    if (this.modeSandboxBtn) {
+      if (isSandbox) {
+        this.modeSandboxBtn.classList.add("active");
+      } else {
+        this.modeSandboxBtn.classList.remove("active");
+      }
+    }
+
+    if (this.menuModeDesc) {
+      if (isSandbox) {
+        this.menuModeDesc.textContent = "Modo Pruebas / Sandbox · Todo desbloqueado · Botón +10,000 🪙 disponible";
+        this.menuModeDesc.style.color = "#fde047";
+      } else {
+        this.menuModeDesc.textContent = "Progresión legítima · Desbloqueo de bendiciones divinas";
+        this.menuModeDesc.style.color = "#94a3b8";
+      }
+    }
+
+    if (this.mapPreviewTag) {
+      this.mapPreviewTag.textContent = isSandbox ? "CAMINO DE FLEGRA · PRUEBAS" : "CAMINO DE FLEGRA · HISTORIA";
+    }
+
+    if (this.testGoldBtn) {
+      if (isSandbox) {
+        this.testGoldBtn.classList.remove("hidden-mode");
+      } else {
+        this.testGoldBtn.classList.add("hidden-mode");
+      }
+    }
+  }
+
+  showTestGoldButton(show = true) {
+    if (!this.testGoldBtn) return;
+    if (show) {
+      this.testGoldBtn.classList.remove("hidden-mode");
+    } else {
+      this.testGoldBtn.classList.add("hidden-mode");
+    }
   }
 
   openMainMenu(progressData) {
@@ -968,8 +1037,8 @@ export class UIManager {
     }
   }
 
-  openPowersScreen(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
-    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed);
+  openPowersScreen(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
+    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
     if (this.mainMenuModal) this.mainMenuModal.classList.add("hidden");
     if (this.powersScreen) this.powersScreen.classList.remove("hidden");
   }
@@ -982,8 +1051,8 @@ export class UIManager {
   }
 
   // Alias para mantener compatibilidad con llamadas existentes
-  openCodex(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
-    this.openPowersScreen(equippedPowerId, unlockedPowers, gamesPlayed);
+  openCodex(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
+    this.openPowersScreen(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
   }
 
   closeCodex() {
@@ -994,13 +1063,13 @@ export class UIManager {
     // Si se usan pestañas en el códice
   }
 
-  updatePowersScreenCards(equippedPowerId, unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
+  updatePowersScreenCards(equippedPowerId, unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
     document.querySelectorAll(".power-god-card").forEach(card => {
       const pId = card.dataset.power;
       const btn = card.querySelector(".god-card-equip-btn");
       const conf = POWERS_DATA[pId];
       const reqGames = conf ? conf.unlockGames : 0;
-      const isUnlocked = (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
+      const isUnlocked = isSandbox || (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
 
       // Elemento indicador de candado
       let lockBanner = card.querySelector(".god-card-lock-banner");
@@ -1052,23 +1121,23 @@ export class UIManager {
         CRONOS: "⏳ Cronos (Cadencia Global +50%)"
       };
       if (!equippedPowerId) {
-        this.powersEquippedStatusText.textContent = "Ninguna (Desbloquea a Hera a las 5 partidas)";
+        this.powersEquippedStatusText.textContent = isSandbox ? "Ninguna (Selecciona una bendición)" : "Ninguna (Desbloquea a Hera a las 5 partidas)";
       } else {
         this.powersEquippedStatusText.textContent = names[equippedPowerId] || `✨ ${equippedPowerId}`;
       }
     }
   }
 
-  updateAltarPowers(equippedPowerId, unlockedPowers = [], gamesPlayed = 0) {
-    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed);
+  updateAltarPowers(equippedPowerId, unlockedPowers = [], gamesPlayed = 0, isSandbox = false) {
+    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
   }
 
-  updateMenuEquippedPower(powerConfig) {
+  updateMenuEquippedPower(powerConfig, isSandbox = false) {
     const iconEl = document.getElementById("menu-skill-icon");
     const descEl = document.getElementById("menu-skill-desc");
     if (!powerConfig) {
-      if (iconEl) iconEl.textContent = "🔒";
-      if (descEl) descEl.textContent = "Sin bendición (5 partidas)";
+      if (iconEl) iconEl.textContent = isSandbox ? "⚡" : "🔒";
+      if (descEl) descEl.textContent = isSandbox ? "Sin bendición (Elige una)" : "Sin bendición (5 partidas)";
       return;
     }
     if (iconEl) iconEl.textContent = powerConfig.icon;

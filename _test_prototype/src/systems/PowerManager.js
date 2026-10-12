@@ -17,7 +17,7 @@ export class PowerManager {
     this.progress = progressManager;
     this.particles = particleSystem;
 
-    this.equippedPowerId = this.progress.getEquippedPower() || "DEMETER";
+    this.equippedPowerId = this.progress.getEquippedPower() || null;
     this.cooldownRemaining = 0;
     this.activeEffectRemaining = 0; // Duración restante del efecto activo
     this.isTargeting = false;
@@ -33,13 +33,22 @@ export class PowerManager {
   }
 
   getEquippedPowerConfig() {
-    return POWERS_DATA[this.equippedPowerId] || POWERS_DATA.DEMETER;
+    if (!this.equippedPowerId) return null;
+    return POWERS_DATA[this.equippedPowerId] || null;
   }
 
-  setEquippedPower(powerId) {
+  setEquippedPower(powerId, isSandbox = false) {
+    if (powerId === null) {
+      this.equippedPowerId = null;
+      this.progress.setEquippedPower(null, isSandbox);
+      this.cooldownRemaining = 0;
+      this.activeEffectRemaining = 0;
+      this.isTargeting = false;
+      return;
+    }
     if (POWERS_DATA[powerId]) {
       this.equippedPowerId = powerId;
-      this.progress.setEquippedPower(powerId);
+      this.progress.setEquippedPower(powerId, isSandbox);
       this.cooldownRemaining = 0;
       this.activeEffectRemaining = 0;
       this.isTargeting = false;
@@ -47,7 +56,7 @@ export class PowerManager {
   }
 
   reset() {
-    this.equippedPowerId = this.progress.getEquippedPower() || "DEMETER";
+    this.equippedPowerId = this.progress.getEquippedPower() || null;
     this.cooldownRemaining = 0;
     this.activeEffectRemaining = 0;
     this.isTargeting = false;
@@ -58,11 +67,15 @@ export class PowerManager {
 
   canCast() {
     const config = this.getEquippedPowerConfig();
+    if (!config) return false;
     return this.activeEffectRemaining <= 0 && this.cooldownRemaining <= 0 && this.economy.canAfford(config.goldCost);
   }
 
   startCast() {
     const config = this.getEquippedPowerConfig();
+    if (!config) {
+      return { success: false, reason: "Aún no tienes bendiciones divinas. ¡Juega 5 partidas o activa el Modo Pruebas en el menú!" };
+    }
     if (this.activeEffectRemaining > 0) {
       return { success: false, reason: `Efecto divino activo (${Math.ceil(this.activeEffectRemaining)}s)` };
     }
@@ -234,7 +247,7 @@ export class PowerManager {
       // El contador de cooldown SOLO inicia cuando acaba el efecto
       if (this.activeEffectRemaining <= 0) {
         const config = this.getEquippedPowerConfig();
-        this.cooldownRemaining = config.cooldown;
+        this.cooldownRemaining = config ? config.cooldown : 0;
       }
     } else {
       // 2. Enfriamiento (según el GDD: se pausa mientras se espera entre oleadas)

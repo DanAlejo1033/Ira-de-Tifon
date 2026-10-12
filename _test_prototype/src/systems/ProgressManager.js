@@ -3,7 +3,7 @@
  * Registra partidas jugadas (según Sección 7 del GDD), récords y estado del tutorial.
  */
 
-const STORAGE_KEY = "gigantomaquia_progress_test_prototype";
+const STORAGE_KEY = "gigantomaquia_progress_v1";
 
 export class ProgressManager {
   constructor() {
@@ -15,15 +15,22 @@ export class ProgressManager {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        const allPowers = ["DEMETER", "HERA", "ARTEMISA", "HERMES", "CRONOS"];
+        const games = parsed.gamesPlayed || 0;
+        const unlocked = this.computeUnlockedPowers(games, parsed.unlockedPowers);
+        let equipped = parsed.equippedPower || null;
+        if (equipped && !unlocked.includes(equipped)) {
+          equipped = unlocked.length > 0 ? unlocked[0] : null;
+        } else if (!equipped && unlocked.length > 0) {
+          equipped = unlocked[0];
+        }
         return {
-          gamesPlayed: parsed.gamesPlayed || 0,
+          gamesPlayed: games,
           highestWave: parsed.highestWave || 0,
           totalEnemiesKilled: parsed.totalEnemiesKilled || 0,
           tutorialCompleted: parsed.tutorialCompleted || false,
           loreSeen: parsed.loreSeen || false,
-          unlockedPowers: allPowers,
-          equippedPower: parsed.equippedPower || "DEMETER"
+          unlockedPowers: unlocked,
+          equippedPower: equipped
         };
       }
     } catch (e) {
@@ -36,9 +43,19 @@ export class ProgressManager {
       totalEnemiesKilled: 0,
       tutorialCompleted: false,
       loreSeen: false,
-      unlockedPowers: ["DEMETER", "HERA", "ARTEMISA", "HERMES", "CRONOS"],
-      equippedPower: "DEMETER"
+      unlockedPowers: [],
+      equippedPower: null
     };
+  }
+
+  computeUnlockedPowers(gamesPlayed, existingUnlocked = []) {
+    const list = new Set(existingUnlocked && existingUnlocked.length ? existingUnlocked : []);
+    if (gamesPlayed >= 5) list.add("HERA");
+    if (gamesPlayed >= 15) list.add("ARTEMISA");
+    if (gamesPlayed >= 25) list.add("DEMETER");
+    if (gamesPlayed >= 35) list.add("HERMES");
+    if (gamesPlayed >= 45) list.add("CRONOS");
+    return Array.from(list);
   }
 
   saveProgress() {
@@ -56,25 +73,25 @@ export class ProgressManager {
     }
     this.data.totalEnemiesKilled += enemiesKilled;
 
-    // Desbloqueo progresivo de poderes divinos cada 5 partidas según el GDD
-    if (this.data.gamesPlayed >= 0 && !this.data.unlockedPowers.includes("DEMETER")) {
-      this.data.unlockedPowers.push("DEMETER");
-    }
-    if (this.data.gamesPlayed >= 5 && !this.data.unlockedPowers.includes("HERA")) {
-      this.data.unlockedPowers.push("HERA");
-    }
-    if (this.data.gamesPlayed >= 10 && !this.data.unlockedPowers.includes("ARTEMISA")) {
-      this.data.unlockedPowers.push("ARTEMISA");
-    }
-    if (this.data.gamesPlayed >= 15 && !this.data.unlockedPowers.includes("HERMES")) {
-      this.data.unlockedPowers.push("HERMES");
-    }
-    if (this.data.gamesPlayed >= 20 && !this.data.unlockedPowers.includes("CRONOS")) {
-      this.data.unlockedPowers.push("CRONOS");
+    const previouslyUnlocked = [...(this.data.unlockedPowers || [])];
+    this.data.unlockedPowers = this.computeUnlockedPowers(this.data.gamesPlayed, this.data.unlockedPowers);
+    const newlyUnlocked = this.data.unlockedPowers.filter(p => !previouslyUnlocked.includes(p));
+
+    // Si no había poder equipado y se acaba de desbloquear el primer poder, auto-equipar
+    if (!this.data.equippedPower && this.data.unlockedPowers.length > 0) {
+      this.data.equippedPower = this.data.unlockedPowers[0];
     }
 
     this.saveProgress();
-    return this.data.gamesPlayed;
+    return {
+      gamesPlayed: this.data.gamesPlayed,
+      newlyUnlocked
+    };
+  }
+
+  isPowerUnlocked(powerId, isSandbox = false) {
+    if (isSandbox) return true;
+    return Boolean(this.data.unlockedPowers && this.data.unlockedPowers.includes(powerId));
   }
 
   isTutorialCompleted() {
@@ -102,8 +119,8 @@ export class ProgressManager {
       totalEnemiesKilled: 0,
       tutorialCompleted: false,
       loreSeen: false,
-      unlockedPowers: ["DEMETER"],
-      equippedPower: "DEMETER"
+      unlockedPowers: [],
+      equippedPower: null
     };
     this.saveProgress();
   }
@@ -120,23 +137,21 @@ export class ProgressManager {
     return this.data.totalEnemiesKilled;
   }
 
-  getUnlockedPowers() {
-    return this.data.unlockedPowers || ["DEMETER"];
-  }
-
-  isPowerUnlocked(powerId) {
-    return true; // Todos los poderes desbloqueados para pruebas
+  getUnlockedPowers(isSandbox = false) {
+    if (isSandbox) {
+      return ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"];
+    }
+    return this.data.unlockedPowers || [];
   }
 
   getEquippedPower() {
-    return this.data.equippedPower || "DEMETER";
+    return this.data.equippedPower || null;
   }
 
-  setEquippedPower(powerId) {
-    this.data.equippedPower = powerId;
-    if (!this.data.unlockedPowers.includes(powerId)) {
-      this.data.unlockedPowers.push(powerId);
+  setEquippedPower(powerId, isSandbox = false) {
+    if (powerId === null || this.isPowerUnlocked(powerId, isSandbox)) {
+      this.data.equippedPower = powerId;
+      this.saveProgress();
     }
-    this.saveProgress();
   }
 }

@@ -89,7 +89,8 @@ export class ProgressManager {
     };
   }
 
-  isPowerUnlocked(powerId) {
+  isPowerUnlocked(powerId, isSandbox = false) {
+    if (isSandbox) return true;
     return Boolean(this.data.unlockedPowers && this.data.unlockedPowers.includes(powerId));
   }
 
@@ -136,7 +137,10 @@ export class ProgressManager {
     return this.data.totalEnemiesKilled;
   }
 
-  getUnlockedPowers() {
+  getUnlockedPowers(isSandbox = false) {
+    if (isSandbox) {
+      return ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"];
+    }
     return this.data.unlockedPowers || [];
   }
 
@@ -144,8 +148,8 @@ export class ProgressManager {
     return this.data.equippedPower || null;
   }
 
-  setEquippedPower(powerId) {
-    if (powerId === null || this.isPowerUnlocked(powerId)) {
+  setEquippedPower(powerId, isSandbox = false) {
+    if (powerId === null || this.isPowerUnlocked(powerId, isSandbox)) {
       this.data.equippedPower = powerId;
       this.saveProgress();
     }

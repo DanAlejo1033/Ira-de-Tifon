@@ -37,10 +37,10 @@ export class PowerManager {
     return POWERS_DATA[this.equippedPowerId] || null;
   }
 
-  setEquippedPower(powerId) {
+  setEquippedPower(powerId, isSandbox = false) {
     if (powerId === null) {
       this.equippedPowerId = null;
-      this.progress.setEquippedPower(null);
+      this.progress.setEquippedPower(null, isSandbox);
       this.cooldownRemaining = 0;
       this.activeEffectRemaining = 0;
       this.isTargeting = false;
@@ -48,7 +48,7 @@ export class PowerManager {
     }
     if (POWERS_DATA[powerId]) {
       this.equippedPowerId = powerId;
-      this.progress.setEquippedPower(powerId);
+      this.progress.setEquippedPower(powerId, isSandbox);
       this.cooldownRemaining = 0;
       this.activeEffectRemaining = 0;
       this.isTargeting = false;
@@ -74,7 +74,7 @@ export class PowerManager {
   startCast() {
     const config = this.getEquippedPowerConfig();
     if (!config) {
-      return { success: false, reason: "Aún no tienes bendiciones divinas. ¡Juega 5 partidas para desbloquear a Hera!" };
+      return { success: false, reason: "Aún no tienes bendiciones divinas. ¡Juega 5 partidas o activa el Modo Pruebas en el menú!" };
     }
     if (this.activeEffectRemaining > 0) {
       return { success: false, reason: `Efecto divino activo (${Math.ceil(this.activeEffectRemaining)}s)` };
