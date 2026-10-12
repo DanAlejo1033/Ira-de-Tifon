@@ -1,7 +1,7 @@
 @echo off
-title Gigantomaquia - Defensa del Monte Olimpo
+title Ira de Tifon - Defensa del Monte Olimpo
 echo ========================================================
-echo       GIGANTOMAQUIA: DEFENSA DEL MONTE OLIMPO
+echo       IRA DE TIFON: DEFENSA DEL MONTE OLIMPO
 echo ========================================================
 echo.
 echo Verificando servidor local en el puerto 8000...
@@ -14,7 +14,7 @@ if %errorlevel% neq 0 (
     echo Servidor HTTP ya esta en ejecucion en el puerto 8000.
 )
 
-echo Abriendo Gigantomaquia en tu navegador...
+echo Abriendo Ira de Tifon en tu navegador...
 start http://localhost:8000
 echo.
 echo Juego iniciado correctamente. ¡Buena suerte, estratega!

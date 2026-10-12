@@ -1,4 +1,4 @@
-# Gigantomaquia: Tower Defense Mitológico
+# Ira de Tifón: Tower Defense Mitológico
 
 Tower Defense arcade sin final con ambientación en la mitología griega, inspirado en *Endless Siege*, diseñado para navegador (HTML5 / Poki y CrazyGames).
 

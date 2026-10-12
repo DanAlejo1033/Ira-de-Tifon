@@ -1,7 +1,7 @@
 @echo off
-title Gigantomaquia - Prototipo de Pruebas (Test Prototype)
+title Ira de Tifon - Prototipo de Pruebas (Test Prototype)
 echo ========================================================
-echo   GIGANTOMAQUIA: PROTOTIPO DE PRUEBAS (TEST PROTOTYPE)
+echo   IRA DE TIFON: PROTOTIPO DE PRUEBAS (TEST PROTOTYPE)
 echo   * Todas las habilidades y torres desbloqueadas para pruebas
 echo ========================================================
 echo.
