@@ -509,22 +509,23 @@ export class UIManager {
     this.selectedTowerType = null;
     this.towerCards.forEach(card => card.classList.remove("selected"));
 
-    // Posicionar la ventana flotante justo al lado de la torre que se va a mejorar
+    // Posicionar la ventana flotante junto a la torre adaptada a la escala visual actual
+    const canvasEl = document.getElementById("game-canvas");
+    const rect = canvasEl.getBoundingClientRect();
+    const scaleVisualX = rect.width / 1024;
+    const scaleVisualY = rect.height / 640;
+
     const panelWidth = 220;
     const panelHeight = 170;
 
-    // Si la torre está hacia la derecha, mostrar la ventana a la izquierda de la torre
-    let posX = tower.pos.x + 36;
-    if (posX + panelWidth > 1005) {
-      posX = tower.pos.x - panelWidth - 36;
+    let posX = (tower.pos.x + 36) * scaleVisualX;
+    if (posX + panelWidth > rect.width) {
+      posX = (tower.pos.x - 36) * scaleVisualX - panelWidth;
     }
 
-    // Centrar verticalmente junto a la torre
-    let posY = tower.pos.y - (panelHeight / 2);
-    // Limitar para permanecer dentro del contenedor del canvas (1024x640)
-    if (posY < 10) posY = 10;
-    if (posY + panelHeight > 630) posY = 630 - panelHeight;
-    if (posX < 10) posX = 10;
+    let posY = (tower.pos.y - panelHeight / 2) * scaleVisualY;
+    posY = Math.max(10, Math.min(rect.height - panelHeight - 10, posY));
+    posX = Math.max(10, posX);
 
     this.inspectorPanel.style.left = `${posX}px`;
     this.inspectorPanel.style.top = `${posY}px`;
