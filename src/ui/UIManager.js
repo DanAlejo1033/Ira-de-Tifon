@@ -19,6 +19,9 @@ export class UIManager {
     this.speedLabel = document.getElementById("speed-label");
     this.pauseBtn = document.getElementById("pause-btn");
     this.pauseIcon = document.getElementById("pause-icon");
+    this.fullscreenBtn = document.getElementById("fullscreen-btn");
+    this.fullscreenIcon = document.getElementById("fullscreen-icon");
+    this.rotateFullscreenBtn = document.getElementById("rotate-fullscreen-btn");
 
     // Elementos de Oleada
     this.callWaveBtn = document.getElementById("call-wave-btn");
@@ -251,6 +254,46 @@ export class UIManager {
         this.handlers.onOpenPause();
       }
     });
+
+    // Control de Pantalla Completa y Bloqueo Horizontal
+    const triggerFullscreen = async () => {
+      try {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen();
+          }
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock("landscape").catch(() => {});
+          }
+        } else {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          }
+        }
+      } catch (e) {
+        console.warn("Fullscreen toggle warning:", e);
+      }
+    };
+
+    if (this.fullscreenBtn) {
+      this.fullscreenBtn.addEventListener("click", triggerFullscreen);
+    }
+    if (this.rotateFullscreenBtn) {
+      this.rotateFullscreenBtn.addEventListener("click", triggerFullscreen);
+    }
+
+    const onFullscreenChange = () => {
+      const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (this.fullscreenIcon) {
+        this.fullscreenIcon.textContent = isFs ? "🗗" : "⛶";
+      }
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
     // Acciones del Menú de Pausa
     this.resumeGameBtn.addEventListener("click", () => {

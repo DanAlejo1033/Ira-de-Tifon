@@ -40,6 +40,9 @@
       </div>
 
       <div class="hud-group">
+        <button id="fullscreen-btn" class="hud-btn" title="Pantalla Completa (Modo Horizontal)">
+          <span id="fullscreen-icon">⛶</span>
+        </button>
         <button id="speed-btn" class="hud-btn" title="Velocidad del juego (1x / 2x / 3x / 5x)">
           <span id="speed-label">1x ⏩</span>
         </button>
@@ -490,6 +493,18 @@
           <button id="reset-progress-btn" class="action-btn outline-btn" title="Borrar datos guardados">🗑️ REINICIAR DATOS</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Rotate Device Prompt for Portrait Mode -->
+  <div id="rotate-device-overlay" class="rotate-device-overlay">
+    <div class="rotate-device-card">
+      <div class="rotate-phone-anim">🔄 📱</div>
+      <h2>GIRA TU DISPOSITIVO</h2>
+      <p>Ira de Tifón está optimizado para jugarse en <strong>modo horizontal (apaisado)</strong>.</p>
+      <button id="rotate-fullscreen-btn" class="rotate-fullscreen-action">
+        JUGAR EN PANTALLA COMPLETA ⛶
+      </button>
     </div>
   </div>
 

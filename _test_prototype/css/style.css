@@ -26,8 +26,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   background-color: #0b0f19;
   color: var(--text-primary);
@@ -38,9 +40,11 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  position: fixed;
+  inset: 0;
 }
 
-/* El contenedor principal se ajusta a la ventana manteniendo la proporción nativa */
+/* El contenedor principal se ajusta a la ventana visible sin desbordar el alto de pantalla */
 #game-container {
   position: relative;
   display: flex;
@@ -48,8 +52,7 @@ html, body {
   width: 100%;
   height: 100%;
   max-width: 100vw;
-  max-height: 100vh;
-  aspect-ratio: 16 / 10;
+  max-height: 100dvh;
   margin: auto;
   box-sizing: border-box;
   background: #11141a;
@@ -62,12 +65,15 @@ html, body {
 /* ==================== TOP HUD ==================== */
 #hud-top {
   height: 52px;
+  flex-shrink: 0;
   background: linear-gradient(180deg, #1e2533 0%, #131722 100%);
   border-bottom: 2px solid #3c321e;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
   z-index: 10;
 }
 
@@ -288,12 +294,16 @@ html, body {
 /* ==================== BOTTOM HUD ==================== */
 #hud-bottom {
   height: 68px;
+  flex-shrink: 0;
   background: linear-gradient(0deg, #141822 0%, #1e2432 100%);
   border-top: 2px solid #3c321e;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: env(safe-area-inset-bottom);
   position: relative;
   z-index: 10;
 }
@@ -1867,5 +1877,183 @@ button.tutorial-locked {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }
+
+/* ==================== PANTALLA DE ORIENTACIÓN (MODO VERTICAL / PORTRAIT) ==================== */
+.rotate-device-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(11, 15, 25, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+@media (orientation: portrait) {
+  .rotate-device-overlay {
+    display: flex !important;
+  }
+}
+
+.rotate-device-card {
+  background: linear-gradient(180deg, #1e2636 0%, #11151f 100%);
+  border: 2px solid var(--gold-primary);
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 330px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(245, 179, 53, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.rotate-phone-anim {
+  font-size: 50px;
+  animation: rotatePhone 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes rotatePhone {
+  0%, 25% { transform: rotate(0deg) scale(1); }
+  75%, 100% { transform: rotate(90deg) scale(1.1); }
+}
+
+.rotate-device-card h2 {
+  font-family: var(--font-title);
+  color: var(--gold-primary);
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.rotate-device-card p {
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rotate-fullscreen-action {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border: 1px solid #fde047;
+  color: #fff;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+  transition: all 0.2s ease;
+}
+
+.rotate-fullscreen-action:active {
+  transform: scale(0.97);
+}
+
+/* ==================== MÓVIL HORIZONTAL COMPACTO (PANTALLAS BAJAS <= 520px) ==================== */
+@media (max-height: 520px) {
+  #hud-top {
+    height: 40px;
+    padding: 0 8px;
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+  .hud-group {
+    gap: 6px;
+  }
+  .stat-badge {
+    padding: 2px 7px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+  .stat-value {
+    font-size: 13px;
+  }
+  .hud-btn {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .test-gold-btn {
+    display: none; /* Ocultar botón de prueba en móviles para dar espacio a vidas/oleadas */
+  }
+
+  #hud-bottom {
+    height: 52px;
+    padding: 0 6px;
+    padding-left: max(6px, env(safe-area-inset-left));
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .section-title {
+    display: none; /* Ahorra 70px de espacio horizontal en móvil */
+  }
+  .power-hud-container {
+    gap: 4px;
+  }
+  .power-hud-card {
+    height: 42px;
+    min-width: 58px;
+    padding: 2px 4px;
+  }
+  .power-hud-icon {
+    font-size: 15px;
+  }
+  .power-hud-name {
+    font-size: 8.5px;
+  }
+  .power-hud-cost {
+    font-size: 8px;
+  }
+  #hud-cooldown-text {
+    font-size: 11px;
+  }
+
+  .towers-grid {
+    gap: 4px;
+  }
+  .tower-card {
+    min-width: 58px;
+    height: 44px;
+    padding: 2px 3px;
+  }
+  .tower-icon {
+    font-size: 14px;
+  }
+  .tower-info {
+    font-size: 8.5px;
+    gap: 2px;
+  }
+  .action-btn.wave-btn {
+    height: 42px;
+    padding: 3px 8px;
+    font-size: 10.5px;
+  }
+
+  #athena-banner {
+    top: 44px;
+    padding: 8px 12px;
+    max-width: 540px;
+  }
+  .athena-avatar {
+    font-size: 20px;
+  }
+  .athena-content p {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  .athena-actions .hud-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+}
+
 
 
