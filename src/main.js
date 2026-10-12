@@ -386,6 +386,50 @@ class Game {
     }
   }
 
+  getCanvasRenderBounds() {
+    const rect = this.canvas.getBoundingClientRect();
+    const intrinsicRatio = this.canvas.width / this.canvas.height;
+    const elementRatio = rect.width / rect.height;
+
+    let renderWidth = rect.width;
+    let renderHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (elementRatio > intrinsicRatio) {
+      renderWidth = rect.height * intrinsicRatio;
+      offsetX = (rect.width - renderWidth) / 2;
+    } else if (elementRatio < intrinsicRatio) {
+      renderHeight = rect.width / intrinsicRatio;
+      offsetY = (rect.height - renderHeight) / 2;
+    }
+
+    return {
+      left: rect.left + offsetX,
+      top: rect.top + offsetY,
+      width: renderWidth,
+      height: renderHeight,
+      offsetX,
+      offsetY,
+      rawRect: rect
+    };
+  }
+
+  clientToCanvasCoords(clientX, clientY) {
+    const bounds = this.getCanvasRenderBounds();
+    const isInside = (
+      clientX >= bounds.left && clientX <= bounds.left + bounds.width &&
+      clientY >= bounds.top && clientY <= bounds.top + bounds.height
+    );
+
+    const scaleX = this.canvas.width / bounds.width;
+    const scaleY = this.canvas.height / bounds.height;
+    const x = (clientX - bounds.left) * scaleX;
+    const y = (clientY - bounds.top) * scaleY;
+
+    return { x, y, isInside, bounds };
+  }
+
   initCanvasInput() {
     // 1. Movimiento global para soportar arrastre y vista previa
     window.addEventListener('pointermove', (e) => {
@@ -407,16 +451,8 @@ class Game {
         }
       }
 
-      const rect = this.canvas.getBoundingClientRect();
-      if (
-        e.clientX >= rect.left && e.clientX <= rect.right &&
-        e.clientY >= rect.top && e.clientY <= rect.bottom
-      ) {
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-
+      const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+      if (isInside) {
         this.mouseGridPos = this.grid.pixelToGrid(x, y);
         this.isMouseOnCanvas = true;
 
@@ -435,10 +471,6 @@ class Game {
         this.isMouseOnCanvas = false;
         // Si estamos apuntando y el puntero se mueve ligeramente afuera, mantener actualizado en los bordes
         if (this.powerManager && this.powerManager.isTargeting) {
-          const scaleX = this.canvas.width / rect.width;
-          const scaleY = this.canvas.height / rect.height;
-          const x = (e.clientX - rect.left) * scaleX;
-          const y = (e.clientY - rect.top) * scaleY;
           const clampedX = Math.max(20, Math.min(this.canvas.width - 20, x));
           const clampedY = Math.max(20, Math.min(this.canvas.height - 20, y));
           this.powerManager.updateMousePos(clampedX, clampedY);
@@ -461,11 +493,8 @@ class Game {
         this.dragState.isDragging = false;
 
         if (wasDragging) {
-          const rect = this.canvas.getBoundingClientRect();
-          if (
-            e.clientX >= rect.left && e.clientX <= rect.right &&
-            e.clientY >= rect.top && e.clientY <= rect.bottom
-          ) {
+          const { isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+          if (isInside) {
             const { col, row } = this.mouseGridPos;
             this.tryBuildTower(this.dragState.towerType, col, row);
           }
@@ -485,15 +514,13 @@ class Game {
       if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
       if (this.powerManager && this.powerManager.isTargeting) {
         if (e.button === 0) { // Clic izquierdo: desatar habilidad
-          const rect = this.canvas.getBoundingClientRect();
-          const scaleX = this.canvas.width / rect.width;
-          const scaleY = this.canvas.height / rect.height;
-          const x = (e.clientX - rect.left) * scaleX;
-          const y = (e.clientY - rect.top) * scaleY;
-          const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
-          if (executed) {
-            const conf = this.powerManager.getEquippedPowerConfig();
-            this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+          const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+          if (isInside) {
+            const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
+            if (executed) {
+              const conf = this.powerManager.getEquippedPowerConfig();
+              this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+            }
           }
           e.preventDefault();
           e.stopPropagation();
@@ -513,15 +540,13 @@ class Game {
 
       // Lanzamiento de habilidad de zona si todavía estamos en modo apuntado
       if (this.powerManager && this.powerManager.isTargeting) {
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-        const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
-        if (executed) {
-          const conf = this.powerManager.getEquippedPowerConfig();
-          this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+        const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+        if (isInside) {
+          const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
+          if (executed) {
+            const conf = this.powerManager.getEquippedPowerConfig();
+            this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+          }
         }
         return;
       }

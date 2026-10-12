@@ -512,20 +512,36 @@ export class UIManager {
     // Posicionar la ventana flotante junto a la torre adaptada a la escala visual actual
     const canvasEl = document.getElementById("game-canvas");
     const rect = canvasEl.getBoundingClientRect();
-    const scaleVisualX = rect.width / 1024;
-    const scaleVisualY = rect.height / 640;
+    const intrinsicRatio = 1024 / 640;
+    const elementRatio = rect.width / rect.height;
+
+    let renderWidth = rect.width;
+    let renderHeight = rect.height;
+    let renderOffsetX = 0;
+    let renderOffsetY = 0;
+
+    if (elementRatio > intrinsicRatio) {
+      renderWidth = rect.height * intrinsicRatio;
+      renderOffsetX = (rect.width - renderWidth) / 2;
+    } else if (elementRatio < intrinsicRatio) {
+      renderHeight = rect.width / intrinsicRatio;
+      renderOffsetY = (rect.height - renderHeight) / 2;
+    }
+
+    const scaleVisualX = renderWidth / 1024;
+    const scaleVisualY = renderHeight / 640;
 
     const panelWidth = 220;
     const panelHeight = 170;
 
-    let posX = (tower.pos.x + 36) * scaleVisualX;
-    if (posX + panelWidth > rect.width) {
-      posX = (tower.pos.x - 36) * scaleVisualX - panelWidth;
+    let posX = renderOffsetX + (tower.pos.x + 36) * scaleVisualX;
+    if (posX + panelWidth > renderOffsetX + renderWidth) {
+      posX = renderOffsetX + (tower.pos.x - 36) * scaleVisualX - panelWidth;
     }
 
-    let posY = (tower.pos.y - panelHeight / 2) * scaleVisualY;
-    posY = Math.max(10, Math.min(rect.height - panelHeight - 10, posY));
-    posX = Math.max(10, posX);
+    let posY = renderOffsetY + (tower.pos.y - panelHeight / 2) * scaleVisualY;
+    posY = Math.max(renderOffsetY + 10, Math.min(renderOffsetY + renderHeight - panelHeight - 10, posY));
+    posX = Math.max(renderOffsetX + 10, posX);
 
     this.inspectorPanel.style.left = `${posX}px`;
     this.inspectorPanel.style.top = `${posY}px`;
