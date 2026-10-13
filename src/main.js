@@ -14,7 +14,7 @@ import { WaveManager } from './systems/WaveManager.js';
 import { ProgressManager } from './systems/ProgressManager.js';
 import { Vector2 } from './core/Vector2.js';
 import { Tower } from './entities/Tower.js';
-import { UIManager } from './ui/UIManager.js';
+import { UIManager } from './ui/UIManager.js?v=1.1.0';
 import { TutorialManager } from './systems/TutorialManager.js';
 import { PowerManager } from './systems/PowerManager.js';
 import { POWERS_DATA } from './config/powersData.js';
@@ -51,6 +51,10 @@ class Game {
       startX: 0,
       startY: 0
     };
+
+    // Seguimiento unificado para toques en pantallas táctiles (iOS/Android) y clics
+    this.canvasPointerDownInfo = null;
+    this.lastCanvasTapTime = 0;
 
     this.gameSpeed = 1;
     this.isPaused = false;
@@ -601,9 +605,19 @@ class Game {
       this.isMouseOnCanvas = false;
     });
 
+    // Notificación pasiva para iOS WebKit para activar interactividad táctil
+    this.canvas.addEventListener('touchstart', () => {}, { passive: true });
+
     // 2.5. Pulsación directa en canvas para registrar coordenadas y lanzamiento de habilidad
     this.canvas.addEventListener('pointerdown', (e) => {
       if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
+
+      this.canvasPointerDownInfo = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        time: performance.now(),
+        button: e.button
+      };
 
       const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
       if (isInside) {
@@ -632,76 +646,36 @@ class Game {
       }
     });
 
-    // 3. Clic directo en el canvas (modo lanzamiento de habilidad, colocación o inspección)
+    // 2.7. Soltar pulsación en canvas (pointerup): Crucial para iOS y dispositivos táctiles
+    // En iOS Safari, los canvas con touch-action: none suprimen el evento 'click'.
+    // Usar pointerup garantiza respuesta inmediata al toque sin depender del click sintético de WebKit.
+    this.canvas.addEventListener('pointerup', (e) => {
+      if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
+      if (!this.canvasPointerDownInfo) return;
+
+      const dx = e.clientX - this.canvasPointerDownInfo.clientX;
+      const dy = e.clientY - this.canvasPointerDownInfo.clientY;
+      const dist = Math.hypot(dx, dy);
+      const elapsed = performance.now() - this.canvasPointerDownInfo.time;
+      const isPrimary = this.canvasPointerDownInfo.button === 0;
+      this.canvasPointerDownInfo = null;
+
+      // Si fue un toque o clic (< 14px de movimiento y < 600ms) sin arrastre de tarjeta
+      if (dist < 14 && elapsed < 600 && isPrimary && !this.dragState.isDragging && !this.dragState.wasDragging) {
+        this.lastCanvasTapTime = performance.now();
+        this.handleCanvasTap(e.clientX, e.clientY);
+      }
+    });
+
+    // 3. Clic directo en el canvas (respaldo para desktop)
     this.canvas.addEventListener('click', (e) => {
       if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
-
-      const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
-      if (!isInside) return;
-
-      // Actualizar SIEMPRE mouseGridPos con las coordenadas exactas de este toque/clic
-      this.mouseGridPos = this.grid.pixelToGrid(x, y);
-      this.isMouseOnCanvas = true;
-
-      // Lanzamiento de habilidad de zona si todavía estamos en modo apuntado
-      if (this.powerManager && this.powerManager.isTargeting) {
-        const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
-        if (executed) {
-          const conf = this.powerManager.getEquippedPowerConfig();
-          this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
-        }
+      // Prevenir doble ejecución si ya se procesó de inmediato por pointerup
+      if (performance.now() - this.lastCanvasTapTime < 400) {
         return;
       }
-
-      if (this.dragState.wasDragging) {
-        this.dragState.wasDragging = false;
-        return;
-      }
-
-      const { col, row } = this.mouseGridPos;
-      if (col < 0 || col >= this.grid.cols || row < 0 || row >= this.grid.rows) return;
-
-      // A) Colocar torre si hay un tipo seleccionado
-      if (this.selectedTowerType) {
-        const built = this.tryBuildTower(this.selectedTowerType, col, row);
-        if (built) {
-          // Deseleccionar SIEMPRE inmediatamente tras colocar una torre
-          this.ui.clearTowerSelection();
-          this.selectedTowerType = null;
-        }
-        return;
-      }
-
-      // B) Seleccionar torre existente para inspeccionar
-      // Se busca en la celda y con tolerancia táctil para pantallas móviles
-      let existingTower = this.grid.getTowerAt(col, row);
-      if (!existingTower) {
-        const touchTolerance = 36;
-        for (const t of this.towersList) {
-          if (Math.hypot(x - t.pos.x, y - t.pos.y) <= touchTolerance) {
-            existingTower = t;
-            break;
-          }
-        }
-      }
-
-      if (existingTower) {
-        if (this.tutorial && this.tutorial.isActive) {
-          if (!this.tutorial.isTowerInspectionAllowed(existingTower)) {
-            const hint = this.tutorial.getInspectionHint();
-            this.particles.addFloatingText(existingTower.pos, hint, "#f59e0b");
-            return;
-          }
-        }
-        this.inspectedTower = existingTower;
-        this.ui.openInspector(existingTower, this.economy);
-        if (this.tutorial && this.tutorial.isActive) {
-          this.tutorial.onTowerInspected(existingTower);
-        }
-      } else {
-        this.inspectedTower = null;
-        this.ui.closeInspector();
-      }
+      this.lastCanvasTapTime = performance.now();
+      this.handleCanvasTap(e.clientX, e.clientY);
     });
 
     // 4. Cancelar selección o apuntado con clic derecho o tecla Escape
@@ -773,6 +747,81 @@ class Game {
         }
       }
     });
+  }
+
+  handleCanvasTap(clientX, clientY) {
+    if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
+
+    const { x, y, isInside } = this.clientToCanvasCoords(clientX, clientY);
+    if (!isInside) return;
+
+    // Actualizar SIEMPRE mouseGridPos con las coordenadas exactas de este toque/clic
+    this.mouseGridPos = this.grid.pixelToGrid(x, y);
+    this.isMouseOnCanvas = true;
+
+    // 1. Lanzamiento de habilidad de zona si todavía estamos en modo apuntado
+    if (this.powerManager && this.powerManager.isTargeting) {
+      const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
+      if (executed) {
+        const conf = this.powerManager.getEquippedPowerConfig();
+        this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+      }
+      return;
+    }
+
+    if (this.dragState.wasDragging) {
+      this.dragState.wasDragging = false;
+      return;
+    }
+
+    const { col, row } = this.mouseGridPos;
+    if (col < 0 || col >= this.grid.cols || row < 0 || row >= this.grid.rows) return;
+
+    // A) Colocar torre si hay un tipo seleccionado
+    if (this.selectedTowerType) {
+      const built = this.tryBuildTower(this.selectedTowerType, col, row);
+      if (built) {
+        // Deseleccionar SIEMPRE inmediatamente tras colocar una torre
+        this.ui.clearTowerSelection();
+        this.selectedTowerType = null;
+      }
+      return;
+    }
+
+    // B) Seleccionar torre existente para inspeccionar
+    // Prioridad 1: Torre ubicada en la celda matricial exacta pulsada
+    let existingTower = this.grid.getTowerAt(col, row);
+
+    // Prioridad 2: Búsqueda de la torre más cercana dentro de un radio de tolerancia táctil (44px)
+    if (!existingTower) {
+      const touchTolerance = 44;
+      let closestDist = Infinity;
+      for (const t of this.towersList) {
+        const d = Math.hypot(x - t.pos.x, y - t.pos.y);
+        if (d <= touchTolerance && d < closestDist) {
+          closestDist = d;
+          existingTower = t;
+        }
+      }
+    }
+
+    if (existingTower) {
+      if (this.tutorial && this.tutorial.isActive) {
+        if (!this.tutorial.isTowerInspectionAllowed(existingTower)) {
+          const hint = this.tutorial.getInspectionHint();
+          this.particles.addFloatingText(existingTower.pos, hint, "#f59e0b");
+          return;
+        }
+      }
+      this.inspectedTower = existingTower;
+      this.ui.openInspector(existingTower, this.economy);
+      if (this.tutorial && this.tutorial.isActive) {
+        this.tutorial.onTowerInspected(existingTower);
+      }
+    } else {
+      this.inspectedTower = null;
+      this.ui.closeInspector();
+    }
   }
 
   tryBuildTower(type, col, row) {

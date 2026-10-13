@@ -223,6 +223,8 @@ export class UIManager {
       this.inspectorPanel.addEventListener("click", (e) => e.stopPropagation());
       this.inspectorPanel.addEventListener("pointerdown", (e) => e.stopPropagation());
       this.inspectorPanel.addEventListener("pointerup", (e) => e.stopPropagation());
+      this.inspectorPanel.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+      this.inspectorPanel.addEventListener("touchend", (e) => e.stopPropagation(), { passive: true });
     }
 
     // Control de velocidad

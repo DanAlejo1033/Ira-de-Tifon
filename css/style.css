@@ -198,6 +198,7 @@ html, body {
   height: 100%;
   object-fit: contain;
   touch-action: none;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent !important;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
   -webkit-touch-callout: none !important;
