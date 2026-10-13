@@ -584,10 +584,11 @@ class Game {
         this.dragState.isDragging = false;
 
         if (wasDragging) {
-          const { isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+          const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
           if (isInside) {
-            const { col, row } = this.mouseGridPos;
-            this.tryBuildTower(this.dragState.towerType, col, row);
+            const gridPos = this.grid.pixelToGrid(x, y);
+            this.mouseGridPos = gridPos;
+            this.tryBuildTower(this.dragState.towerType, gridPos.col, gridPos.row);
           }
           // Siempre deseleccionar tras un arrastre
           this.ui.clearTowerSelection();
@@ -600,12 +601,18 @@ class Game {
       this.isMouseOnCanvas = false;
     });
 
-    // 2.5. Pulsación directa en canvas para lanzamiento inmediato de habilidad de zona
+    // 2.5. Pulsación directa en canvas para registrar coordenadas y lanzamiento de habilidad
     this.canvas.addEventListener('pointerdown', (e) => {
       if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
+
+      const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+      if (isInside) {
+        this.mouseGridPos = this.grid.pixelToGrid(x, y);
+        this.isMouseOnCanvas = true;
+      }
+
       if (this.powerManager && this.powerManager.isTargeting) {
         if (e.button === 0) { // Clic izquierdo: desatar habilidad
-          const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
           if (isInside) {
             const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
             if (executed) {
@@ -629,15 +636,19 @@ class Game {
     this.canvas.addEventListener('click', (e) => {
       if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
 
+      const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
+      if (!isInside) return;
+
+      // Actualizar SIEMPRE mouseGridPos con las coordenadas exactas de este toque/clic
+      this.mouseGridPos = this.grid.pixelToGrid(x, y);
+      this.isMouseOnCanvas = true;
+
       // Lanzamiento de habilidad de zona si todavía estamos en modo apuntado
       if (this.powerManager && this.powerManager.isTargeting) {
-        const { x, y, isInside } = this.clientToCanvasCoords(e.clientX, e.clientY);
-        if (isInside) {
-          const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
-          if (executed) {
-            const conf = this.powerManager.getEquippedPowerConfig();
-            this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
-          }
+        const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
+        if (executed) {
+          const conf = this.powerManager.getEquippedPowerConfig();
+          this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
         }
         return;
       }
@@ -662,7 +673,18 @@ class Game {
       }
 
       // B) Seleccionar torre existente para inspeccionar
-      const existingTower = this.grid.getTowerAt(col, row);
+      // Se busca en la celda y con tolerancia táctil para pantallas móviles
+      let existingTower = this.grid.getTowerAt(col, row);
+      if (!existingTower) {
+        const touchTolerance = 36;
+        for (const t of this.towersList) {
+          if (Math.hypot(x - t.pos.x, y - t.pos.y) <= touchTolerance) {
+            existingTower = t;
+            break;
+          }
+        }
+      }
+
       if (existingTower) {
         if (this.tutorial && this.tutorial.isActive) {
           if (!this.tutorial.isTowerInspectionAllowed(existingTower)) {

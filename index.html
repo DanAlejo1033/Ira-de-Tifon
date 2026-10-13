@@ -72,6 +72,20 @@
     <main id="canvas-wrapper">
       <canvas id="game-canvas" width="1024" height="640"></canvas>
 
+      <!-- Botón de Habilidad Divina flotante (reubicado) -->
+      <div id="power-hud-container" class="power-hud-floating">
+        <button id="btn-cast-power" class="power-hud-card" title="Invocar Habilidad Divina [Q / Clic]">
+          <div class="power-hud-icon" id="hud-power-icon">🌿</div>
+          <div class="power-hud-info">
+            <span class="power-hud-name" id="hud-power-name">Deméter</span>
+            <span class="power-hud-cost" id="hud-power-cost">🪙 15</span>
+          </div>
+          <div id="hud-power-cooldown" class="power-cooldown-overlay hidden">
+            <span id="hud-cooldown-text">10s</span>
+          </div>
+        </button>
+      </div>
+
       <!-- Floating Tower Inspector / Upgrade Window (Beside the tower) -->
       <div id="inspector-panel" class="inspector-panel hidden">
         <div class="inspector-header">
@@ -113,21 +127,6 @@
 
     <!-- Bottom Controls & Towers Bar -->
     <footer id="hud-bottom">
-      <!-- Power Divine Slot (Habilidad Activa) -->
-      <div id="power-hud-container" class="power-hud-container">
-        <div class="section-title">HABILIDAD</div>
-        <button id="btn-cast-power" class="power-hud-card" title="Invocar Habilidad Divina [Q / Clic]">
-          <div class="power-hud-icon" id="hud-power-icon">🌿</div>
-          <div class="power-hud-info">
-            <span class="power-hud-name" id="hud-power-name">Deméter</span>
-            <span class="power-hud-cost" id="hud-power-cost">🪙 15</span>
-          </div>
-          <div id="hud-power-cooldown" class="power-cooldown-overlay hidden">
-            <span id="hud-cooldown-text">10s</span>
-          </div>
-        </button>
-      </div>
-
       <div id="towers-selector">
         <div class="section-title">TORRES OLÍMPICAS</div>
         <div class="towers-grid">
