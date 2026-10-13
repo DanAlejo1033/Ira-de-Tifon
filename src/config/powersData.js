@@ -14,11 +14,11 @@ export const POWERS_DATA = {
     radius: 95,          // Radio en píxeles del área de efecto
     duration: 3.0,       // Duración del área activa (3s)
     stunDuration: 1.5,   // Aturde 1.5s a cada enemigo que entra (una vez por criatura)
-    cooldown: 10,        // Enfriamiento rápido para pruebas (10s)
-    goldCost: 15,        // Costo en Dracmas (15)
+    cooldown: 70,        // Enfriamiento de 70s
+    goldCost: 100,       // Costo en Dracmas (100)
     unlockGames: 25,     // Desbloquea a las 25 partidas (10 tras Artemisa)
     themeColor: "#22c55e",
-    description: "Siembra un campo de zarzas sagradas durante 3.5s. Aturde durante 1.5s a cada monstruo que cruce la zona.",
+    description: "Siembra un campo de zarzas sagradas durante 3.0s. Aturde durante 1.5s a cada monstruo que cruce la zona.",
     quote: "¡Que la Madre Tierra sujete y paralice a los gigantes!"
   },
 
@@ -31,13 +31,13 @@ export const POWERS_DATA = {
     type: "ZONE",
     radius: 105,
     duration: 0.8,       // Impacto inmediato con animación
-    normalHpPercent: 0.30,// 30% de la vida máxima a monstruos normales y rápidos
-    giantHpPercent: 0.20, // 20% a gigantes y tanques
-    cooldown: 12,        // Enfriamiento rápido para pruebas (12s)
-    goldCost: 20,        // Costo en Dracmas (20)
+    normalHpPercent: 0.60,// 60% de la vida máxima
+    giantHpPercent: 0.60, // 60% de la vida máxima
+    cooldown: 70,        // Enfriamiento de 70s
+    goldCost: 100,       // Costo en Dracmas (100)
     unlockGames: 5,      // Desbloquea tras 5 partidas jugadas (GDD)
     themeColor: "#ec4899",
-    description: "Descarga una esfera de fuego celestial. Inflige 30% de la vida máxima a los monstruos (20% a gigantes y tanques).",
+    description: "Descarga una esfera de fuego celestial. Inflige 60% de la vida máxima a los monstruos en el área.",
     quote: "¡La Reina del Olimpo fulmina a los insolentes!"
   },
 
@@ -52,8 +52,8 @@ export const POWERS_DATA = {
     duration: 3.5,       // Zona activa durante 3.5s
     markDuration: 4.0,   // La marca dura 4s en cada enemigo
     damageAmp: 0.20,     // Aumenta el daño recibido en un 20%
-    cooldown: 10,        // Enfriamiento rápido para pruebas (10s)
-    goldCost: 15,        // Costo en Dracmas (15)
+    cooldown: 70,        // Enfriamiento de 70s
+    goldCost: 100,       // Costo en Dracmas (100)
     unlockGames: 15,     // Desbloquea a las 15 partidas (10 tras Hera)
     themeColor: "#38bdf8",
     description: "Zona estelar de 3.5s que marca a los enemigos. Los marcados reciben un +20% de daño de todas las torres durante 4s.",
@@ -69,8 +69,8 @@ export const POWERS_DATA = {
     type: "GLOBAL",
     duration: 6.0,       // Activo globalmente durante 6s
     goldMultiplier: 1.5, // +50% de oro por todos los enemigos derrotados en el tiempo
-    cooldown: 12,        // Enfriamiento (12s)
-    goldCost: 15,        // Costo en Dracmas (15)
+    cooldown: 70,        // Enfriamiento de 70s
+    goldCost: 120,       // Costo en Dracmas (120)
     unlockGames: 35,     // Desbloquea a las 35 partidas (10 tras Deméter)
     themeColor: "#facc15",
     description: "Bendición global durante 6s: todos los monstruos derrotados en el campo de batalla otorgan un +50% de Dracmas de oro.",
@@ -86,8 +86,8 @@ export const POWERS_DATA = {
     type: "GLOBAL",
     duration: 6.0,       // Aceleración temporal global durante 6s
     attackSpeedBuff: 0.50,// +50% de cadencia de ataque a todas las torres
-    cooldown: 12,        // Enfriamiento (12s)
-    goldCost: 20,        // Costo en Dracmas (20)
+    cooldown: 70,        // Enfriamiento de 70s
+    goldCost: 110,       // Costo en Dracmas (110)
     unlockGames: 45,     // Desbloquea a las 45 partidas (10 tras Hermes)
     themeColor: "#a855f7",
     description: "Distorsión temporal global durante 6s: aumenta un +50% la cadencia y velocidad de ataque de todas las torres del Olimpo.",

@@ -13,8 +13,8 @@ export class Enemy {
     this.type = config.type;
     this.name = config.name;
     
-    // Escalado de vida según la oleada (curva suave para arcade infinito)
-    const waveHpScaling = 1 + (waveNumber - 1) * 0.18;
+    // Escalado de vida exponencial según la oleada (base 1.1)
+    const waveHpScaling = Math.pow(1.1, waveNumber - 1);
     this.maxHp = Math.round(config.hp * waveHpScaling);
     this.hp = this.maxHp;
     
