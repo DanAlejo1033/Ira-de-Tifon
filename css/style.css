@@ -654,6 +654,9 @@ html, body {
   backdrop-filter: blur(6px);
   width: 236px;
   animation: popInInspector 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @keyframes popInInspector {
@@ -688,6 +691,7 @@ html, body {
   cursor: pointer;
   font-size: 13px;
   padding: 2px 4px;
+  touch-action: manipulation;
 }
 
 .close-btn:hover {
@@ -732,6 +736,18 @@ html, body {
   justify-content: center;
   align-items: center;
   text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.inspect-btn * {
+  pointer-events: none;
+}
+
+.inspect-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(1.15);
 }
 
 .upgrade-btn {
