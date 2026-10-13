@@ -37,7 +37,13 @@ export const BALANCE = {
     { fromWave: 1,  base: 1.05  },
     { fromWave: 30, base: 1.056 },
     { fromWave: 60, base: 1.02  },
-  ]
+  ],
+
+  // Multiplicadores de daño y evolución de torres
+  UPGRADE_DAMAGE_MULT: 1.25,
+  EVOLVE_DAMAGE_MULT: 1.45,
+  HADES_FORM2_MAXDAMAGE_MULT: 1.8,
+  HADES_FORM3_MAXDAMAGE_MULT: 2.0
 };
 
 export function goldMultiplier(wave) {
