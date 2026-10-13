@@ -158,9 +158,9 @@ export class WaveManager {
       for (let i = 0; i < 7; i++) {
         const enemy = new Enemy(ENEMIES.NORMAL, waypoints, wave);
         if (this.isTutorialMode && i === 6) {
-          // El 7mo soldado resiste con vida extra para alcanzar las puertas del Olimpo y enseñar la pérdida de vida
-          enemy.hp = 115;
-          enemy.maxHp = 115;
+          // El 7mo soldado resiste con vida colosal (550 HP) para superar el fuego cruzado de las 3 torres y alcanzar las puertas del Olimpo, enseñando pedagógicamente la pérdida de vida
+          enemy.hp = 550;
+          enemy.maxHp = 550;
         }
         list.push(enemy);
       }
