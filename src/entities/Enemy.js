@@ -4,6 +4,7 @@
  */
 
 import { Vector2 } from '../core/Vector2.js';
+import { BALANCE } from '../config/balance.js';
 
 let enemyIdCounter = 1;
 
@@ -13,8 +14,8 @@ export class Enemy {
     this.type = config.type;
     this.name = config.name;
     
-    // Escalado de vida exponencial según la oleada (base 1.1)
-    const waveHpScaling = Math.pow(1.1, waveNumber - 1);
+    // Escalado de vida según la oleada (exponencial según GDD)
+    const waveHpScaling = Math.pow(BALANCE.ENEMY_HP_GROWTH, waveNumber - 1);
     this.maxHp = Math.round(config.hp * waveHpScaling);
     this.hp = this.maxHp;
     

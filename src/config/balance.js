@@ -27,5 +27,8 @@ export const BALANCE = {
   
   // Venta y mejoras de torres
   SELL_REFUND_RATIO: 0.7,     // Recupera el 70% del valor invertido
-  UPGRADE_COST_MULTIPLIER: 1.4// Factor de incremento por cada nivel de torre
+  UPGRADE_COST_MULTIPLIER: 1.4,// Factor de incremento por cada nivel de torre
+
+  // Escalado de dificultad exponencial
+  ENEMY_HP_GROWTH: 1.07
 };
