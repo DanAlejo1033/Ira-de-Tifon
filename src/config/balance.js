@@ -30,5 +30,22 @@ export const BALANCE = {
   UPGRADE_COST_MULTIPLIER: 1.4,// Factor de incremento por cada nivel de torre
 
   // Escalado de dificultad exponencial
-  ENEMY_HP_GROWTH: 1.07
+  ENEMY_HP_GROWTH: 1.07,
+
+  // Crecimiento de oro por tramos de oleadas
+  GOLD_GROWTH_STAGES: [
+    { fromWave: 1,  base: 1.05  },
+    { fromWave: 30, base: 1.056 },
+    { fromWave: 60, base: 1.02  },
+  ]
 };
+
+export function goldMultiplier(wave) {
+  const st = BALANCE.GOLD_GROWTH_STAGES;
+  let m = 1;
+  for (let i = 0; i < st.length; i++) {
+    const end = st[i + 1] ? st[i + 1].fromWave : Infinity;
+    m *= Math.pow(st[i].base, Math.max(0, Math.min(wave, end) - st[i].fromWave));
+  }
+  return m;
+}

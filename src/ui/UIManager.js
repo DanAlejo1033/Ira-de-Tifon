@@ -538,7 +538,7 @@ export class UIManager {
   }
 
   updateHUD(economy, waveManager) {
-    this.goldDisplay.textContent = economy.gold;
+    this.goldDisplay.textContent = Math.floor(economy.gold);
     this.livesDisplay.textContent = economy.lives;
     this.waveDisplay.textContent = waveManager.currentWave;
     // Contador de enemigos muertos/derrotados en la batalla
@@ -581,7 +581,7 @@ export class UIManager {
       } else {
         const bonus = waveManager.getEarlyCallBonus();
         this.callWaveBtn.querySelector(".wave-btn-title").textContent = "ADELANTAR OLEADA";
-        this.waveBtnSubtitle.textContent = `¡Riesgo! (+${bonus} 🪙)`;
+        this.waveBtnSubtitle.textContent = `¡Riesgo! (+${Math.round(bonus)} 🪙)`;
         this.callWaveBtn.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
         this.callWaveBtn.style.borderColor = "#f59e0b";
       }
@@ -791,7 +791,7 @@ export class UIManager {
 
   showGameOver(wave, gold, kills, games, isSandbox = false) {
     this.goWave.textContent = wave;
-    this.goGold.textContent = gold;
+    this.goGold.textContent = Math.floor(gold);
     this.goKills.textContent = kills;
     this.goGames.textContent = isSandbox ? `${games} (Pruebas)` : games;
     this.gameOverModal.classList.remove("hidden");

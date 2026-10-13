@@ -3,7 +3,7 @@
  * La oleada NO inicia automáticamente: el jugador siempre tiene el control de cuándo comenzar.
  */
 
-import { BALANCE } from '../config/balance.js';
+import { BALANCE, goldMultiplier } from '../config/balance.js';
 import { ENEMIES } from '../config/enemiesData.js';
 import { Enemy } from '../entities/Enemy.js';
 
@@ -70,7 +70,7 @@ export class WaveManager {
     }
 
     const nextWave = this.currentWave + 1;
-    const waveReward = BALANCE.BASE_WAVE_REWARD + nextWave * BALANCE.WAVE_REWARD_GROWTH;
+    const waveReward = (BALANCE.BASE_WAVE_REWARD + nextWave * BALANCE.WAVE_REWARD_GROWTH) * goldMultiplier(nextWave);
 
     // 1. Bonus Base: Premio mínimo garantizado
     const bonusBase = Math.round(waveReward * BALANCE.EARLY_WAVE_BASE_RATIO);
@@ -301,7 +301,7 @@ export class WaveManager {
       this.currentWaveTotalHp = 0;
       this.spawnQueueTotalHp = 0;
       const leaked = this.enemiesLeakedThisWave;
-      const reward = BALANCE.BASE_WAVE_REWARD + this.currentWave * BALANCE.WAVE_REWARD_GROWTH;
+      const reward = (BALANCE.BASE_WAVE_REWARD + this.currentWave * BALANCE.WAVE_REWARD_GROWTH) * goldMultiplier(this.currentWave);
 
       if (this.onWaveCompleted) {
         this.onWaveCompleted(this.currentWave, reward, leaked);

@@ -4,7 +4,7 @@
  */
 
 import { Vector2 } from '../core/Vector2.js';
-import { BALANCE } from '../config/balance.js';
+import { BALANCE, goldMultiplier } from '../config/balance.js';
 
 let enemyIdCounter = 1;
 
@@ -21,7 +21,7 @@ export class Enemy {
     
     this.baseSpeed = config.speed;
     this.currentSpeed = this.baseSpeed;
-    this.goldReward = config.goldReward;
+    this.goldReward = config.goldReward * goldMultiplier(waveNumber);
     this.radius = config.radius;
     this.color = config.color;
     this.borderColor = config.borderColor;

@@ -924,7 +924,7 @@ class Game {
     if (bonus > 0) {
       this.economy.addGold(bonus);
       const entrancePixel = this.grid.gridToPixelCenter(this.grid.entranceCell.col, this.grid.entranceCell.row);
-      this.particles.addFloatingText(entrancePixel, `+${bonus} Dracmas (¡Adelanto!)`, "#ffd166", true);
+      this.particles.addFloatingText(entrancePixel, `+${Math.round(bonus)} Dracmas (¡Adelanto!)`, "#ffd166", true);
     }
   }
 
@@ -935,7 +935,7 @@ class Game {
     if (leakedCount === 0) {
       this.economy.addGold(reward);
       const centerPos = new Vector2(this.canvas.width / 2, 80);
-      this.particles.addFloatingText(centerPos, `¡Defensa Perfecta! +${reward} 🪙`, "#ffd166", true);
+      this.particles.addFloatingText(centerPos, `¡Defensa Perfecta! +${Math.round(reward)} 🪙`, "#ffd166", true);
     } else {
       const centerPos = new Vector2(this.canvas.width / 2, 80);
       this.particles.addFloatingText(centerPos, `¡Oleada ${wave} terminada! (${leakedCount} se filtraron)`, "#94a3b8");
@@ -959,12 +959,12 @@ class Game {
     let reward = enemy.goldReward;
     const isHermes = this.powerManager && this.powerManager.isHermesActive();
     if (isHermes) {
-      reward = Math.round(reward * 1.5);
+      reward = reward * 1.5;
     }
     this.economy.addGold(reward);
     this.particles.addHitSparks(enemy.pos, enemy.color, 8);
     const tag = isHermes ? " 🪽" : "";
-    this.particles.addFloatingText(enemy.pos, `+${reward} 🪙${tag}`, isHermes ? "#facc15" : "#ffd166", true);
+    this.particles.addFloatingText(enemy.pos, `+${Math.round(reward)} 🪙${tag}`, isHermes ? "#facc15" : "#ffd166", true);
 
     if (this.tutorial && this.tutorial.isActive) {
       this.tutorial.onEnemyKilled(enemy);
