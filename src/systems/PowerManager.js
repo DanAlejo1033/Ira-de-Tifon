@@ -155,7 +155,7 @@ export class PowerManager {
         this.particles.addFloatingText(targetPos, `🌿 ¡ZARZAS DE DEMÉTER!`, "#22c55e", true);
       }
     } else if (config.id === "ARTEMISA") {
-      // Diana de Artemisa: Zona estelar 3.5s que marca a los enemigos (+20% daño)
+      // Fuerza de Hércules: Zona de poder heroico 3.5s que marca a los enemigos (+20% daño recibido)
       this.activeZones.push({
         id: this.nextZoneId++,
         powerId: "ARTEMISA",
@@ -166,8 +166,8 @@ export class PowerManager {
         affectedEnemyIds: new Set()
       });
       if (this.particles) {
-        this.particles.addDivineBlast(targetPos, "#38bdf8", config.radius);
-        this.particles.addFloatingText(targetPos, `🏹 ¡DIANA DE ARTEMISA!`, "#38bdf8", true);
+        this.particles.addDivineBlast(targetPos, "#eab308", config.radius);
+        this.particles.addFloatingText(targetPos, `🦁 ¡FUERZA DE HÉRCULES!`, "#facc15", true);
       }
     }
 
@@ -295,13 +295,13 @@ export class PowerManager {
               }
             }
           } else if (zone.powerId === "ARTEMISA") {
-            // Marca de vulnerabilidad (+20% de daño recibido por 4s)
+            // Marca de vulnerabilidad heroica de Hércules (+20% de daño recibido por 4s)
             enemy.markTimer = 4.0;
             enemy.markAmp = 0.20;
             if (!zone.affectedEnemyIds.has(enemy.id)) {
               zone.affectedEnemyIds.add(enemy.id);
               if (this.particles) {
-                this.particles.addFloatingText(enemy.pos, `🎯 ¡MARCADO! (+20% DAÑO)`, "#38bdf8", false);
+                this.particles.addFloatingText(enemy.pos, `🦁 ¡VULNERABLE! (+20% DAÑO)`, "#facc15", false);
               }
             }
           }

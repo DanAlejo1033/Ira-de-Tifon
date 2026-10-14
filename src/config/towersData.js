@@ -6,15 +6,15 @@
 export const TOWERS = {
   HERCULES: {
     type: "HERCULES",
-    name: "Hércules",
+    name: "Artemisa",
     role: "Cadencia & Precisión",
-    description: "Ballesta divina de disparo rápido a un solo objetivo.",
+    description: "Ballesta divina de la cazadora. Disparo certero y veloz a un solo objetivo.",
     cost: 50,
     range: 120,
     damage: 40,
     fireRate: 1.1,
     projectileSpeed: 490,
-    color: "#f59e0b",
+    color: "#22c55e",
     icon: "🏹"
   },
   ZEUS: {

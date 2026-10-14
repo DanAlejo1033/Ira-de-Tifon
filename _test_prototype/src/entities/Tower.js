@@ -11,7 +11,8 @@ import { BALANCE } from '../config/balance.js';
 let towerIdCounter = 1;
 
 export const FORM_NAMES = {
-  HERCULES: ["Ballesta Mortal", "Ballesta Reforzada", "Arco de Heracles"],
+  HERCULES: ["Ballesta de Artemisa", "Ballesta Lunar", "Arco Divino de Artemisa"],
+  ARTEMISA: ["Ballesta de Artemisa", "Ballesta Lunar", "Arco Divino de Artemisa"],
   ZEUS: ["Rayo Celeste", "Rayo en Cadena (6 obj.)", "Tormenta Cataclísmica (9 obj.)"],
   ARES: ["Mortero de Guerra", "Mortero de Esquirlas", "Fuego Griego del Tártaro"],
   HADES: ["Rayo del Tártaro", "Ojo del Inframundo (Obj. Vital)", "Cosechador de Almas (3 Rayos)"],
@@ -97,7 +98,21 @@ export class Tower {
   }
 
   getBaseForm2Cost() {
-    return Math.ceil(this.baseCost / 0.02273); // 2.273% del costo base (Hércules = 2200, Poseidón = 2640, Zeus = 3300, Ares = 3520, Hades = 3960)
+    switch (this.type) {
+      case "HERCULES":
+      case "ARTEMISA":
+        return 4200; // 2200 + 2000
+      case "POSEIDON":
+        return 4640; // 2640 + 2000
+      case "ZEUS":
+        return 5100; // 3300 + 1800
+      case "ARES":
+        return 5020; // 3520 + 1500
+      case "HADES":
+        return 5460; // 3960 + 1500
+      default:
+        return 4500;
+    }
   }
 
   getBaseForm3Cost() {
@@ -173,8 +188,8 @@ export class Tower {
 
     // Guardar rango anterior e iniciar timer de 0.5s para resaltar el aumento de rango
     this.previousRange = this.range;
-    this.damage = Math.round(this.damage * 1.25);
-    this.maxDamage = Math.round(this.maxDamage * 1.25);
+    this.damage = Math.round(this.damage * BALANCE.UPGRADE_DAMAGE_MULT);
+    this.maxDamage = Math.round(this.maxDamage * BALANCE.UPGRADE_DAMAGE_MULT);
     this.range = Math.round(this.range * 1.0175); // Reducido a la mitad: +1.75% de incremento por nivel
     if (this.type === "ZEUS") {
       this.chainRange = Math.round(this.chainRange * 1.0175);
@@ -197,7 +212,7 @@ export class Tower {
 
     // Guardar rango anterior e iniciar timer de 0.5s para resaltar el cambio de rango
     this.previousRange = this.range;
-    this.damage = Math.round(this.damage * 1.45);
+    this.damage = Math.round(this.damage * BALANCE.EVOLVE_DAMAGE_MULT);
 
     // Ajustes de alcance por dios y forma según especificación técnica:
     if (this.type === "ZEUS") {
@@ -271,10 +286,10 @@ export class Tower {
     } else if (this.type === "HADES") {
       if (this.form === 2) {
         this.rampTime = 2.5; // Rampa más rápida y desbloqueo de objetivo de mayor vida
-        this.maxDamage = Math.round(this.maxDamage * 1.8);
+        this.maxDamage = Math.round(this.maxDamage * BALANCE.HADES_FORM2_MAXDAMAGE_MULT);
       } else if (this.form === 3) {
         this.rampTime = 1.3;
-        this.maxDamage = Math.round(this.maxDamage * 2.0);
+        this.maxDamage = Math.round(this.maxDamage * BALANCE.HADES_FORM3_MAXDAMAGE_MULT);
       }
     } else if (this.type === "POSEIDON") {
       if (this.form === 2) {

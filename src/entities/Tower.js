@@ -11,7 +11,8 @@ import { BALANCE } from '../config/balance.js';
 let towerIdCounter = 1;
 
 export const FORM_NAMES = {
-  HERCULES: ["Ballesta Mortal", "Ballesta Reforzada", "Arco de Heracles"],
+  HERCULES: ["Ballesta de Artemisa", "Ballesta Lunar", "Arco Divino de Artemisa"],
+  ARTEMISA: ["Ballesta de Artemisa", "Ballesta Lunar", "Arco Divino de Artemisa"],
   ZEUS: ["Rayo Celeste", "Rayo en Cadena (6 obj.)", "Tormenta Cataclísmica (9 obj.)"],
   ARES: ["Mortero de Guerra", "Mortero de Esquirlas", "Fuego Griego del Tártaro"],
   HADES: ["Rayo del Tártaro", "Ojo del Inframundo (Obj. Vital)", "Cosechador de Almas (3 Rayos)"],
@@ -97,7 +98,21 @@ export class Tower {
   }
 
   getBaseForm2Cost() {
-    return Math.ceil(this.baseCost / 0.02273); // 2.273% del costo base (Hércules = 2200, Poseidón = 2640, Zeus = 3300, Ares = 3520, Hades = 3960)
+    switch (this.type) {
+      case "HERCULES":
+      case "ARTEMISA":
+        return 4200; // 2200 + 2000
+      case "POSEIDON":
+        return 4640; // 2640 + 2000
+      case "ZEUS":
+        return 5100; // 3300 + 1800
+      case "ARES":
+        return 5020; // 3520 + 1500
+      case "HADES":
+        return 5460; // 3960 + 1500
+      default:
+        return 4500;
+    }
   }
 
   getBaseForm3Cost() {

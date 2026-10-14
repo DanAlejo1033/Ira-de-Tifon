@@ -1125,6 +1125,15 @@ export class UIManager {
       const reqGames = conf ? conf.unlockGames : 0;
       const isUnlocked = isSandbox || (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
 
+      // Sincronizar dinámicamente chips de costo y enfriamiento desde POWERS_DATA
+      if (conf) {
+        const chips = card.querySelectorAll(".god-stat-chip");
+        if (chips.length >= 2) {
+          chips[0].textContent = `🪙 ${conf.goldCost}`;
+          chips[1].textContent = `⏱️ ${conf.cooldown}s CD`;
+        }
+      }
+
       // Elemento indicador de candado
       let lockBanner = card.querySelector(".god-card-lock-banner");
       if (!lockBanner) {
@@ -1169,7 +1178,7 @@ export class UIManager {
     if (this.powersEquippedStatusText) {
       const names = {
         HERA: "🦚 Hera (Cólera Celestial)",
-        ARTEMISA: "🏹 Artemisa (Diana Divina)",
+        ARTEMISA: "🦁 Hércules (Fuerza & Vulnerabilidad)",
         DEMETER: "🌿 Deméter (Zarzas)",
         HERMES: "🪽 Hermes (Oro Global +50%)",
         CRONOS: "⏳ Cronos (Cadencia Global +50%)"

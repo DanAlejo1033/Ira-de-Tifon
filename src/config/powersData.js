@@ -43,10 +43,10 @@ export const POWERS_DATA = {
 
   ARTEMISA: {
     id: "ARTEMISA",
-    name: "Diana de Artemisa",
-    god: "Artemisa",
-    subtitle: "Vulnerabilidad Divina",
-    icon: "🏹",
+    name: "Fuerza de Hércules",
+    god: "Hércules",
+    subtitle: "Golpe Heroico & Vulnerabilidad",
+    icon: "🦁",
     type: "ZONE",
     radius: 105,
     duration: 3.5,       // Zona activa durante 3.5s
@@ -55,9 +55,9 @@ export const POWERS_DATA = {
     cooldown: 70,        // Enfriamiento de 70s
     goldCost: 100,       // Costo en Dracmas (100)
     unlockGames: 15,     // Desbloquea a las 15 partidas (10 tras Hera)
-    themeColor: "#38bdf8",
-    description: "Zona estelar de 3.5s que marca a los enemigos. Los marcados reciben un +20% de daño de todas las torres durante 4s.",
-    quote: "¡La Cazadora divina marca a su presa con luz inextinguible!"
+    themeColor: "#eab308", // Color Amarillo
+    description: "Zona de impacto heroico de 3.5s que marca a los enemigos. Los marcados reciben un +20% de daño de todas las torres durante 4s.",
+    quote: "¡El Campeón del Olimpo quiebra la resistencia de los gigantes!"
   },
 
   HERMES: {

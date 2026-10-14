@@ -84,7 +84,7 @@ export class TutorialManager {
         this.ui.setSpotlight("#towers-selector", true);
         this.ui.showAthenaTutorialStep(
           "Paso 1 de 8: Torres Divinas",
-          "¡Saludos, estratega! Soy Atenea. Aquí abajo tienes a tus campeones del Olimpo: Hércules, Zeus, Ares, Hades y Poseidón. Cada uno porta poderes divinos únicos.",
+          "¡Saludos, estratega! Soy Atenea. Aquí abajo tienes a tus campeones del Olimpo: Artemisa, Zeus, Ares, Hades y Poseidón. Cada uno porta poderes divinos únicos.",
           "Siguiente ➔",
           () => this.applyStep(1),
           () => this.skip()
@@ -123,19 +123,19 @@ export class TutorialManager {
         this.highlightCanvasCell = {
           col: this.hercules1TargetCell.col,
           row: this.hercules1TargetCell.row,
-          label: "🏹 HÉRCULES 1 (4,6)",
-          color: "#f59e0b"
+          label: "🏹 ARTEMISA 1 (4,6)",
+          color: "#22c55e"
         };
         this.ui.showAthenaTutorialStep(
           "Paso 3 de 8: Primera Torre",
-          "Selecciona a Hércules (🏹 50🪙) y colócalo en la posición (4,6) en la colina junto al camino para vigilar el flanco.",
+          "Selecciona a Artemisa (🏹 50🪙) y colócala en la posición (4,6) en la colina junto al camino para vigilar el flanco.",
           "Esperando colocación...",
           null,
           () => this.skip()
         );
         break;
 
-      case 3: // Colocar Torre 2: Hércules en (4,7)
+      case 3: // Colocar Torre 2: Artemisa en (4,7)
         this.ui.clearSpotlight();
         this.ui.setTutorialLocks({
           allowCallWave: false,
@@ -148,12 +148,12 @@ export class TutorialManager {
         this.highlightCanvasCell = {
           col: this.hercules2TargetCell.col,
           row: this.hercules2TargetCell.row,
-          label: "🏹 HÉRCULES 2 (4,7)",
-          color: "#f59e0b"
+          label: "🏹 ARTEMISA 2 (4,7)",
+          color: "#22c55e"
         };
         this.ui.showAthenaTutorialStep(
           "Paso 4 de 8: Segunda Torre",
-          "¡Bien hecho! Ahora convoca a un segundo Hércules (🏹 50🪙) en la posición (4,7) para duplicar la cadencia de virotes en la entrada.",
+          "¡Bien hecho! Ahora convoca a una segunda Artemisa (🏹 50🪙) en la posición (4,7) para duplicar la cadencia de virotes en la entrada.",
           "Esperando colocación...",
           null,
           () => this.skip()
@@ -234,7 +234,7 @@ export class TutorialManager {
 
         this.ui.showAthenaTutorialStep(
           "Paso 7 de 8: Mejoras de Nivel",
-          "¡Oleada superada! Haz clic en la torre de Hércules y presiona 'Nivel' dos veces para llevarla a Nivel 3 y aumentar su daño y cadencia.",
+          "¡Oleada superada! Haz clic en la torre de Artemisa y presiona 'Nivel' dos veces para llevarla a Nivel 3 y aumentar su daño y cadencia.",
           "Esperando mejoras...",
           null,
           () => this.skip()
@@ -259,7 +259,7 @@ export class TutorialManager {
         this.ui.highlightElement("#call-wave-btn");
         this.ui.showAthenaTutorialStep(
           "Paso 8 de 8: Adelanto de Oleadas",
-          "¡Hércules ha alcanzado el Nivel 3! Ahora presiona 'INICIAR OLEADA' para desatar la siguiente incursión enemiga.",
+          "¡Artemisa ha alcanzado el Nivel 3! Ahora presiona 'INICIAR OLEADA' para desatar la siguiente incursión enemiga.",
           "Esperando inicio...",
           null,
           () => this.skip()
@@ -341,8 +341,8 @@ export class TutorialManager {
   }
 
   getPlacementHint() {
-    if (this.currentStep === 2) return "¡Coloca a Hércules en la casilla resaltada (4,6)!";
-    if (this.currentStep === 3) return "¡Coloca a Hércules en la casilla resaltada (4,7)!";
+    if (this.currentStep === 2) return "¡Coloca a Artemisa en la casilla resaltada (4,6)!";
+    if (this.currentStep === 3) return "¡Coloca a Artemisa en la casilla resaltada (4,7)!";
     if (this.currentStep === 4) return "¡Coloca a Zeus en la casilla resaltada (5,6)!";
     return "¡Espera las órdenes de Atenea antes de construir!";
   }
@@ -359,7 +359,7 @@ export class TutorialManager {
   }
 
   getInspectionHint() {
-    if (this.currentStep === 6) return "¡Haz clic en la torre de Hércules para mejorarla!";
+    if (this.currentStep === 6) return "¡Haz clic en la torre de Artemisa para mejorarla!";
     if (this.currentStep === 8) return "¡Haz clic en la torre de Zeus para evolucionarla!";
     return "¡Sigue las instrucciones de Atenea en este momento!";
   }
@@ -470,7 +470,7 @@ export class TutorialManager {
           this.waitingForStep6AfterLifeExplaining = false;
           this.applyStep(6);
         } else {
-          this.ui.showAthenaMessage("¡Defiende el santuario! Al terminar la oleada reforzaremos a Hércules.", 3500);
+          this.ui.showAthenaMessage("¡Defiende el santuario! Al terminar la oleada reforzaremos a Artemisa.", 3500);
         }
       },
       () => this.skip()
@@ -508,7 +508,7 @@ export class TutorialManager {
 
       this.ui.showAthenaTutorialStep(
         "Paso 7 de 8: Mejorar a Nivel 3",
-        `Hércules está en Nivel ${tower.level}. Presiona 'Nivel' hasta llevarlo a Nivel 3 para potenciar sus disparos.`,
+        `Artemisa está en Nivel ${tower.level}. Presiona 'Nivel' hasta llevarlo a Nivel 3 para potenciar sus disparos.`,
         "Esperando nivel 3...",
         null,
         () => this.skip()

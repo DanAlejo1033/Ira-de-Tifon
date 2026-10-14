@@ -63,7 +63,7 @@
           <span class="athena-name">Atenea:</span>
           <span id="athena-step-badge" class="athena-badge hidden">Paso 1 de 5</span>
         </div>
-        <p id="athena-text">¡Los monstruos de Tifón marchan hacia el Olimpo! Coloca la ballesta de Hércules en las colinas.</p>
+        <p id="athena-text">¡Los monstruos de Tifón marchan hacia el Olimpo! Coloca la ballesta de Artemisa en las colinas.</p>
         <div id="athena-actions" class="athena-actions hidden">
           <button id="athena-next-btn" class="athena-action-btn primary">Siguiente ➔</button>
           <button id="athena-skip-btn" class="athena-action-btn secondary" title="Omitir tutorial">Omitir ✖</button>
@@ -133,11 +133,11 @@
       <div id="towers-selector">
         <div class="section-title">TORRES OLÍMPICAS</div>
         <div class="towers-grid">
-          <!-- Hercules (Active) -->
+          <!-- Artemisa (Torre Verde) -->
           <button class="tower-card active-tower" data-tower="HERCULES" id="btn-hercules">
             <div class="tower-icon">🏹</div>
             <div class="tower-info">
-              <span class="tower-name">Hércules</span>
+              <span class="tower-name">Artemisa</span>
               <span class="tower-cost">🪙 50</span>
             </div>
             <div class="tower-role">Cadencia & Disparo</div>
@@ -373,30 +373,30 @@
           <h3 class="god-card-title">HERA</h3>
           <span class="god-card-role" style="color: #f472b6;">Cólera Celestial & Daño %</span>
           <div class="god-card-stats-row">
-            <span class="god-stat-chip">🪙 20</span>
-            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🪙 100</span>
+            <span class="god-stat-chip">⏱️ 70s CD</span>
             <span class="god-stat-chip">🎯 105px</span>
           </div>
-          <p class="god-card-desc">Descarga una esfera de fuego celestial. Inflige 30% de vida máxima a monstruos (20% a gigantes y tanques).</p>
+          <p class="god-card-desc">Descarga una esfera de fuego celestial. Inflige 60% de la vida máxima a los monstruos en el área.</p>
           <div class="god-card-quote">"¡La Reina del Olimpo fulmina a los insolentes!"</div>
           <button class="god-card-equip-btn" data-power="HERA">EQUIPAR</button>
         </div>
 
-        <!-- 2. Artemisa (2ª Habilidad - 15 partidas) -->
+        <!-- 2. Hércules (2ª Habilidad - 15 partidas) -->
         <div class="power-god-card" data-power="ARTEMISA">
-          <div class="god-card-badge">🏹 CAZADORA DIVINA</div>
-          <div class="god-card-avatar" style="--god-color: #38bdf8;">
-            <span class="god-card-emoji">🏹</span>
+          <div class="god-card-badge">🦁 CAMPEÓN DEL OLIMPO</div>
+          <div class="god-card-avatar" style="--god-color: #eab308;">
+            <span class="god-card-emoji">🦁</span>
           </div>
-          <h3 class="god-card-title">ARTEMISA</h3>
-          <span class="god-card-role" style="color: #38bdf8;">Diana & Vulnerabilidad</span>
+          <h3 class="god-card-title">HÉRCULES</h3>
+          <span class="god-card-role" style="color: #facc15;">Golpe Heroico & Vulnerabilidad</span>
           <div class="god-card-stats-row">
-            <span class="god-stat-chip">🪙 15</span>
-            <span class="god-stat-chip">⏱️ 10s CD</span>
+            <span class="god-stat-chip">🪙 100</span>
+            <span class="god-stat-chip">⏱️ 70s CD</span>
             <span class="god-stat-chip">🎯 105px</span>
           </div>
-          <p class="god-card-desc">Zona estelar de 3.5s que marca a los enemigos. Los monstruos marcados reciben un +20% de daño durante 4s.</p>
-          <div class="god-card-quote">"¡La flecha de Artemisa señala la debilidad del enemigo!"</div>
+          <p class="god-card-desc">Zona de impacto heroico de 3.5s que marca a los enemigos. Los marcados reciben un +20% de daño de todas las torres durante 4s.</p>
+          <div class="god-card-quote">"¡El Campeón del Olimpo quiebra la resistencia de los gigantes!"</div>
           <button class="god-card-equip-btn" data-power="ARTEMISA">EQUIPAR</button>
         </div>
 
@@ -409,11 +409,11 @@
           <h3 class="god-card-title">DEMÉTER</h3>
           <span class="god-card-role" style="color: #4ade80;">Zarzas & Aturdimiento</span>
           <div class="god-card-stats-row">
-            <span class="god-stat-chip">🪙 15</span>
-            <span class="god-stat-chip">⏱️ 10s CD</span>
+            <span class="god-stat-chip">🪙 100</span>
+            <span class="god-stat-chip">⏱️ 70s CD</span>
             <span class="god-stat-chip">🎯 95px</span>
           </div>
-          <p class="god-card-desc">Siembra un campo de zarzas sagradas durante 3.5s. Aturde durante 1.5s a cada monstruo que cruce la zona.</p>
+          <p class="god-card-desc">Siembra un campo de zarzas sagradas durante 3.0s. Aturde durante 1.5s a cada monstruo que cruce la zona.</p>
           <div class="god-card-quote">"¡Que la Madre Tierra sujete y paralice a los gigantes!"</div>
           <button class="god-card-equip-btn" data-power="DEMETER">EQUIPAR</button>
         </div>
@@ -427,11 +427,11 @@
           <h3 class="god-card-title">HERMES</h3>
           <span class="god-card-role" style="color: #facc15;">Oro Global (+50%)</span>
           <div class="god-card-stats-row">
-            <span class="god-stat-chip">🪙 15</span>
-            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🪙 120</span>
+            <span class="god-stat-chip">⏱️ 70s CD</span>
             <span class="god-stat-chip">🌐 GLOBAL (6s)</span>
           </div>
-          <p class="god-card-desc">Bendición global durante 6s: todos los enemigos derrotados en el campo de batalla otorgan un +50% de Dracmas de oro.</p>
+          <p class="god-card-desc">Bendición global durante 6s: todos los monstruos derrotados en el campo de batalla otorgan un +50% de Dracmas de oro.</p>
           <div class="god-card-quote">"¡El oro y la fortuna vuelan veloces al tesoro del Olimpo!"</div>
           <button class="god-card-equip-btn" data-power="HERMES">EQUIPAR</button>
         </div>
@@ -445,11 +445,11 @@
           <h3 class="god-card-title">CRONOS</h3>
           <span class="god-card-role" style="color: #c084fc;">Cadencia Global (+50%)</span>
           <div class="god-card-stats-row">
-            <span class="god-stat-chip">🪙 20</span>
-            <span class="god-stat-chip">⏱️ 12s CD</span>
+            <span class="god-stat-chip">🪙 110</span>
+            <span class="god-stat-chip">⏱️ 70s CD</span>
             <span class="god-stat-chip">🌐 GLOBAL (6s)</span>
           </div>
-          <p class="god-card-desc">Distorsión temporal global durante 6s: aumenta un +50% la velocidad de disparo y cadencia de todas las torres olímpicas.</p>
+          <p class="god-card-desc">Distorsión temporal global durante 6s: aumenta un +50% la cadencia y velocidad de ataque de todas las torres del Olimpo.</p>
           <div class="god-card-quote">"¡El Titán del Tiempo acelera el castigo del Olimpo!"</div>
           <button class="god-card-equip-btn" data-power="CRONOS">EQUIPAR</button>
         </div>

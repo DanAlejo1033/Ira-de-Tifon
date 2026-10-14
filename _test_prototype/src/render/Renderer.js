@@ -424,7 +424,7 @@ export class Renderer {
       ctx.rotate(tower.angle);
 
       if (tower.type === "HERCULES") {
-        // HÉRCULES: Ballesta divina
+        // ARTEMISA: Ballesta / Arco divino verde
         ctx.fillStyle = tower.color;
         ctx.fillRect(-6, -5, 18, 10);
         ctx.strokeStyle = "#cbd5e1";
@@ -432,7 +432,7 @@ export class Renderer {
         ctx.beginPath();
         ctx.arc(4, 0, 14, -Math.PI / 2.2, Math.PI / 2.2);
         ctx.stroke();
-        ctx.strokeStyle = "#ffd166";
+        ctx.strokeStyle = "#86efac";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(-4, 0);
@@ -536,14 +536,15 @@ export class Renderer {
         ctx.fillStyle = "#fef08a";
         ctx.fill();
       } else {
-        // Virote de Hércules
-        ctx.fillStyle = "#ffd166";
+        // Virote de Artemisa (Verde)
+        ctx.fillStyle = "#86efac";
         ctx.fillRect(-8, -1.5, 16, 3);
         ctx.beginPath();
         ctx.moveTo(8, 0);
         ctx.lineTo(4, -4);
         ctx.lineTo(4, 4);
         ctx.closePath();
+        ctx.fillStyle = "#22c55e";
         ctx.fill();
       }
 
@@ -637,15 +638,15 @@ export class Renderer {
         ctx.restore();
       }
 
-      // Si está marcado por Artemisa, dibuja diana de vulnerabilidad
+      // Si está marcado por la Fuerza de Hércules, dibuja marca de vulnerabilidad amarilla
       if (enemy.markTimer > 0) {
         ctx.save();
         ctx.font = "13px serif";
         ctx.textAlign = "center";
-        ctx.fillText("🎯", x, y - enemy.radius - (enemy.stunTimer > 0 ? 26 : 14));
+        ctx.fillText("🦁", x, y - enemy.radius - (enemy.stunTimer > 0 ? 26 : 14));
         ctx.beginPath();
         ctx.arc(x, y, enemy.radius + 4, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.85)";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 2]);
         ctx.stroke();
@@ -774,19 +775,21 @@ export class Renderer {
         ctx.textBaseline = "middle";
         ctx.fillText("🦚", zone.pos.x, zone.pos.y);
       } else if (zone.powerId === "ARTEMISA") {
-        // Zona Estelar de Diana de Artemisa
+        // Zona Heroica de Fuerza de Hércules (Amarillo)
         ctx.beginPath();
         ctx.arc(zone.pos.x, zone.pos.y, zone.radius + pulse, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
+        ctx.fillStyle = "rgba(234, 179, 8, 0.25)";
         ctx.fill();
-        ctx.strokeStyle = "#38bdf8";
+        ctx.strokeStyle = "#eab308";
         ctx.lineWidth = 2.5;
+        ctx.shadowColor = "#facc15";
+        ctx.shadowBlur = 10;
         ctx.stroke();
 
-        // Círculo astronómico
+        // Círculo astronómico de poder
         ctx.beginPath();
         ctx.arc(zone.pos.x, zone.pos.y, zone.radius * 0.55, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(186, 230, 253, 0.65)";
+        ctx.strokeStyle = "rgba(254, 240, 138, 0.7)";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.stroke();
@@ -794,7 +797,7 @@ export class Renderer {
         ctx.font = "24px serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("🏹", zone.pos.x, zone.pos.y);
+        ctx.fillText("🦁", zone.pos.x, zone.pos.y);
       }
 
       ctx.restore();

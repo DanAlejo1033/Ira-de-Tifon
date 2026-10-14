@@ -37,10 +37,15 @@ export class UIManager {
     this.inspectRange = document.getElementById("inspect-range");
     this.inspectSpeed = document.getElementById("inspect-speed");
     this.upgradeCost = document.getElementById("upgrade-cost");
+    this.upgradeCostWrapper = document.getElementById("upgrade-cost-wrapper");
+    this.upgradeBtnText = document.getElementById("upgrade-btn-text");
     this.sellRefund = document.getElementById("sell-refund");
     this.upgradeBtn = document.getElementById("upgrade-tower-btn");
     this.evolveBtn = document.getElementById("evolve-tower-btn");
+    this.evolveBtnText = document.getElementById("evolve-btn-text");
+    this.evolveCostWrapper = document.getElementById("evolve-cost-wrapper");
     this.evolveCost = document.getElementById("evolve-cost");
+    this.evolveDiscountBadge = document.getElementById("evolve-discount-badge");
     this.sellBtn = document.getElementById("sell-tower-btn");
     this.closeInspectBtn = document.getElementById("close-inspect-btn");
 
@@ -50,6 +55,9 @@ export class UIManager {
     this.aresMinesBtn = document.getElementById("ares-mines-btn");
     this.aresShrapnelCost = document.getElementById("ares-shrapnel-cost");
     this.aresMinesCost = document.getElementById("ares-mines-cost");
+    this.aresShrapnelDiscount = document.getElementById("ares-shrapnel-discount");
+    this.aresMinesDiscount = document.getElementById("ares-mines-discount");
+    this._lastInspectorStateKey = null;
 
     // Modal Game Over
     this.gameOverModal = document.getElementById("gameover-modal");
@@ -214,6 +222,9 @@ export class UIManager {
     if (this.inspectorPanel) {
       this.inspectorPanel.addEventListener("click", (e) => e.stopPropagation());
       this.inspectorPanel.addEventListener("pointerdown", (e) => e.stopPropagation());
+      this.inspectorPanel.addEventListener("pointerup", (e) => e.stopPropagation());
+      this.inspectorPanel.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+      this.inspectorPanel.addEventListener("touchend", (e) => e.stopPropagation(), { passive: true });
     }
 
     // Control de velocidad
@@ -527,7 +538,7 @@ export class UIManager {
   }
 
   updateHUD(economy, waveManager) {
-    this.goldDisplay.textContent = economy.gold;
+    this.goldDisplay.textContent = Math.floor(economy.gold);
     this.livesDisplay.textContent = economy.lives;
     this.waveDisplay.textContent = waveManager.currentWave;
     // Contador de enemigos muertos/derrotados en la batalla
@@ -546,19 +557,34 @@ export class UIManager {
       }
     });
 
-    // Actualizar botón de oleada según si hay combate en curso o se está en espera del jugador
-    if (!waveManager.isWaveActive) {
-      const nextWave = waveManager.currentWave + 1;
-      this.callWaveBtn.querySelector(".wave-btn-title").textContent = `INICIAR OLEADA ${nextWave}`;
-      this.waveBtnSubtitle.textContent = waveManager.currentWave === 0 ? "¡Prepara tus defensas!" : "Comenzar cuando estés listo";
-      this.callWaveBtn.style.background = "linear-gradient(135deg, #15803d 0%, #166534 100%)";
-      this.callWaveBtn.style.borderColor = "#22c55e";
+    // Actualizar botón de oleada según si está en cooldown o combate en curso
+    if (waveManager.callCooldown > 0) {
+      const remainingSec = waveManager.callCooldown.toFixed(1);
+      this.callWaveBtn.classList.add("cooldown");
+      this.callWaveBtn.disabled = true;
+      this.callWaveBtn.querySelector(".wave-btn-title").textContent = `ESPERA (${remainingSec}s)`;
+      this.waveBtnSubtitle.textContent = waveManager.isWaveActive ? "Oleada en marcha..." : "Preparando enemigos...";
+      this.callWaveBtn.style.background = "linear-gradient(135deg, #374151 0%, #1f2937 100%)";
+      this.callWaveBtn.style.borderColor = "#4b5563";
     } else {
-      const bonus = waveManager.getEarlyCallBonus();
-      this.callWaveBtn.querySelector(".wave-btn-title").textContent = "ADELANTAR OLEADA";
-      this.waveBtnSubtitle.textContent = `¡Riesgo! (+${bonus} 🪙)`;
-      this.callWaveBtn.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
-      this.callWaveBtn.style.borderColor = "#f59e0b";
+      this.callWaveBtn.classList.remove("cooldown");
+      if (!this.callWaveBtn.classList.contains("tutorial-locked")) {
+        this.callWaveBtn.disabled = false;
+      }
+
+      if (!waveManager.isWaveActive) {
+        const nextWave = waveManager.currentWave + 1;
+        this.callWaveBtn.querySelector(".wave-btn-title").textContent = `INICIAR OLEADA ${nextWave}`;
+        this.waveBtnSubtitle.textContent = waveManager.currentWave === 0 ? "¡Prepara tus defensas!" : "Comenzar cuando estés listo";
+        this.callWaveBtn.style.background = "linear-gradient(135deg, #15803d 0%, #166534 100%)";
+        this.callWaveBtn.style.borderColor = "#22c55e";
+      } else {
+        const bonus = waveManager.getEarlyCallBonus();
+        this.callWaveBtn.querySelector(".wave-btn-title").textContent = "ADELANTAR OLEADA";
+        this.waveBtnSubtitle.textContent = `¡Riesgo! (+${Math.round(bonus)} 🪙)`;
+        this.callWaveBtn.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
+        this.callWaveBtn.style.borderColor = "#f59e0b";
+      }
     }
 
     // Actualizar inspector si está abierto
@@ -609,34 +635,48 @@ export class UIManager {
     this.inspectorPanel.style.left = `${posX}px`;
     this.inspectorPanel.style.top = `${posY}px`;
 
+    this._lastInspectorStateKey = null;
     this.inspectorPanel.classList.remove("hidden");
     this.updateInspector(tower, economy);
   }
 
   updateInspector(tower, economy) {
+    if (!tower) return;
+
+    const cost = tower.getUpgradeCost();
+    const refund = tower.getSellRefund();
+    const evolveCost = tower.getEvolveCost();
+    const discount = tower.getEvolveDiscount();
+    const canAffordUpgrade = economy.canAfford(cost) && tower.level < tower.maxLevel;
+    const canAffordEvolve = economy.canAfford(evolveCost) && tower.form < 3;
+    const tutorialLocksJson = this.activeTutorialLocks ? JSON.stringify(this.activeTutorialLocks.allowedInspectorActions) : "";
+
+    // Caché de estado: Si los atributos relevantes no han cambiado, evitamos mutaciones innecesarias del DOM
+    // Esto asegura que los eventos de clic/toque no se interrumpan por reconstrucción del árbol DOM a 60 FPS
+    const stateKey = `${tower.col}_${tower.row}_${tower.type}_${tower.level}_${tower.form}_${tower.branch || ""}_${tower.damage}_${tower.range}_${tower.fireRate}_${cost}_${refund}_${evolveCost}_${discount}_${canAffordUpgrade}_${canAffordEvolve}_${tutorialLocksJson}`;
+    if (this._lastInspectorStateKey === stateKey) {
+      return;
+    }
+    this._lastInspectorStateKey = stateKey;
+
     this.inspectName.textContent = `${tower.name} - ${tower.getFormName()} (Nv.${tower.level})`;
     this.inspectDamage.textContent = tower.damage;
     this.inspectRange.textContent = tower.range;
     this.inspectSpeed.textContent = `${tower.fireRate.toFixed(2)}/s`;
 
-    const cost = tower.getUpgradeCost();
-    const refund = tower.getSellRefund();
-    this.upgradeCost.textContent = cost;
-    this.sellRefund.textContent = refund;
+    if (this.upgradeCost) this.upgradeCost.textContent = cost;
+    if (this.sellRefund) this.sellRefund.textContent = refund;
 
     // Botón de Nivel (1 a 10)
-    if (economy.canAfford(cost) && tower.level < tower.maxLevel) {
-      this.upgradeBtn.disabled = false;
-      this.upgradeBtn.style.opacity = "1";
-    } else {
-      this.upgradeBtn.disabled = true;
-      this.upgradeBtn.style.opacity = "0.5";
-    }
+    this.upgradeBtn.disabled = !canAffordUpgrade;
+    this.upgradeBtn.style.opacity = canAffordUpgrade ? "1" : "0.5";
 
     if (tower.level >= tower.maxLevel) {
-      this.upgradeBtn.textContent = "Nivel Máx. (10)";
+      if (this.upgradeBtnText) this.upgradeBtnText.textContent = "Nivel Máx. (10)";
+      if (this.upgradeCostWrapper) this.upgradeCostWrapper.style.display = "none";
     } else {
-      this.upgradeBtn.innerHTML = `Nivel (🪙 <span id="upgrade-cost">${cost}</span>)`;
+      if (this.upgradeBtnText) this.upgradeBtnText.textContent = "Nivel";
+      if (this.upgradeCostWrapper) this.upgradeCostWrapper.style.display = "";
     }
 
     // Comprobar si es Ares en Forma 1 (ofrece elección de rama permanente para Forma 2)
@@ -644,24 +684,29 @@ export class UIManager {
       this.evolveBtn.classList.add("hidden");
       this.aresBranchContainer.classList.remove("hidden");
 
-      const evolveCost = tower.getEvolveCost();
-      const canAfford = economy.canAfford(evolveCost);
-      const discount = tower.getEvolveDiscount();
+      if (this.aresShrapnelCost) this.aresShrapnelCost.textContent = evolveCost;
+      if (this.aresMinesCost) this.aresMinesCost.textContent = evolveCost;
 
-      this.aresShrapnelCost.textContent = evolveCost;
-      this.aresMinesCost.textContent = evolveCost;
+      this.aresShrapnelBtn.disabled = !canAffordEvolve;
+      this.aresMinesBtn.disabled = !canAffordEvolve;
+      this.aresShrapnelBtn.style.opacity = canAffordEvolve ? "1" : "0.5";
+      this.aresMinesBtn.style.opacity = canAffordEvolve ? "1" : "0.5";
 
-      this.aresShrapnelBtn.disabled = !canAfford;
-      this.aresMinesBtn.disabled = !canAfford;
-      this.aresShrapnelBtn.style.opacity = canAfford ? "1" : "0.5";
-      this.aresMinesBtn.style.opacity = canAfford ? "1" : "0.5";
-
-      if (discount > 0) {
-        this.aresShrapnelBtn.innerHTML = `💥 Esquirlas (🪙 ${evolveCost} <small style="color:#86efac;font-size:9px;">-${discount}</small>)`;
-        this.aresMinesBtn.innerHTML = `💣 Bombas (🪙 ${evolveCost} <small style="color:#86efac;font-size:9px;">-${discount}</small>)`;
-      } else {
-        this.aresShrapnelBtn.innerHTML = `💥 Esquirlas (🪙 ${evolveCost})`;
-        this.aresMinesBtn.innerHTML = `💣 Bombas (🪙 ${evolveCost})`;
+      if (this.aresShrapnelDiscount) {
+        if (discount > 0) {
+          this.aresShrapnelDiscount.textContent = ` -${discount}`;
+          this.aresShrapnelDiscount.style.display = "";
+        } else {
+          this.aresShrapnelDiscount.style.display = "none";
+        }
+      }
+      if (this.aresMinesDiscount) {
+        if (discount > 0) {
+          this.aresMinesDiscount.textContent = ` -${discount}`;
+          this.aresMinesDiscount.style.display = "";
+        } else {
+          this.aresMinesDiscount.style.display = "none";
+        }
       }
     } else {
       this.aresBranchContainer.classList.add("hidden");
@@ -670,24 +715,28 @@ export class UIManager {
       // Botón de Evolución de Forma (disponible a cualquier nivel con descuento acumulativo)
       if (tower.form < 3) {
         const nextFormNum = tower.form + 1;
-        const evolveCost = tower.getEvolveCost();
-        const discount = tower.getEvolveDiscount();
+        this.evolveBtn.disabled = !canAffordEvolve;
+        this.evolveBtn.style.opacity = canAffordEvolve ? "1" : "0.5";
 
-        const canAfford = economy.canAfford(evolveCost);
-        this.evolveBtn.disabled = !canAfford;
-        this.evolveBtn.style.opacity = canAfford ? "1" : "0.5";
+        if (this.evolveBtnText) this.evolveBtnText.textContent = `Forma ${nextFormNum}`;
+        if (this.evolveCostWrapper) this.evolveCostWrapper.style.display = "";
+        if (this.evolveCost) this.evolveCost.textContent = evolveCost;
 
-        if (discount > 0) {
-          this.evolveBtn.innerHTML = `Forma ${nextFormNum} (🪙 <span id="evolve-cost">${evolveCost}</span> <small style="color:#86efac;font-size:10px;">-${discount}</small>)`;
-          this.evolveBtn.title = `¡Descuento de ${discount} 🪙 aplicado por tus ${tower.level - 1} niveles previos!`;
-        } else {
-          this.evolveBtn.innerHTML = `Forma ${nextFormNum} (🪙 <span id="evolve-cost">${evolveCost}</span>)`;
-          this.evolveBtn.title = "Evoluciona a cualquier nivel para potenciar su poder divino";
+        if (this.evolveDiscountBadge) {
+          if (discount > 0) {
+            this.evolveDiscountBadge.textContent = ` -${discount}`;
+            this.evolveDiscountBadge.style.display = "";
+            this.evolveBtn.title = `¡Descuento de ${discount} 🪙 aplicado por tus ${tower.level - 1} niveles previos!`;
+          } else {
+            this.evolveDiscountBadge.style.display = "none";
+            this.evolveBtn.title = "Evoluciona a cualquier nivel para potenciar su poder divino";
+          }
         }
       } else {
         this.evolveBtn.disabled = true;
         this.evolveBtn.style.opacity = "0.6";
-        this.evolveBtn.innerHTML = "Forma Máx. (3)";
+        if (this.evolveBtnText) this.evolveBtnText.textContent = "Forma Máx. (3)";
+        if (this.evolveCostWrapper) this.evolveCostWrapper.style.display = "none";
         this.evolveBtn.title = "La torre ha alcanzado su máximo poder divino";
       }
     }
@@ -730,6 +779,7 @@ export class UIManager {
 
   closeInspector() {
     this.inspectedTower = null;
+    this._lastInspectorStateKey = null;
     this.inspectorPanel.classList.add("hidden");
     if (this.handlers.onDeselectTower) {
       this.handlers.onDeselectTower();
@@ -741,7 +791,7 @@ export class UIManager {
 
   showGameOver(wave, gold, kills, games, isSandbox = false) {
     this.goWave.textContent = wave;
-    this.goGold.textContent = gold;
+    this.goGold.textContent = Math.floor(gold);
     this.goKills.textContent = kills;
     this.goGames.textContent = isSandbox ? `${games} (Pruebas)` : games;
     this.gameOverModal.classList.remove("hidden");
@@ -915,7 +965,9 @@ export class UIManager {
     // 1. Botón de oleada
     if (locks.allowCallWave) {
       this.callWaveBtn.classList.remove("tutorial-locked");
-      this.callWaveBtn.disabled = false;
+      if (!this.callWaveBtn.classList.contains("cooldown")) {
+        this.callWaveBtn.disabled = false;
+      }
     } else {
       this.callWaveBtn.classList.add("tutorial-locked");
       this.callWaveBtn.disabled = true;
@@ -998,7 +1050,9 @@ export class UIManager {
   clearTutorialLocks() {
     this.activeTutorialLocks = null;
     this.callWaveBtn.classList.remove("tutorial-locked");
-    this.callWaveBtn.disabled = false;
+    if (!this.callWaveBtn.classList.contains("cooldown")) {
+      this.callWaveBtn.disabled = false;
+    }
 
     this.pauseBtn.classList.remove("tutorial-locked");
     this.pauseBtn.disabled = false;
@@ -1071,6 +1125,15 @@ export class UIManager {
       const reqGames = conf ? conf.unlockGames : 0;
       const isUnlocked = isSandbox || (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
 
+      // Sincronizar dinámicamente chips de costo y enfriamiento desde POWERS_DATA
+      if (conf) {
+        const chips = card.querySelectorAll(".god-stat-chip");
+        if (chips.length >= 2) {
+          chips[0].textContent = `🪙 ${conf.goldCost}`;
+          chips[1].textContent = `⏱️ ${conf.cooldown}s CD`;
+        }
+      }
+
       // Elemento indicador de candado
       let lockBanner = card.querySelector(".god-card-lock-banner");
       if (!lockBanner) {
@@ -1115,7 +1178,7 @@ export class UIManager {
     if (this.powersEquippedStatusText) {
       const names = {
         HERA: "🦚 Hera (Cólera Celestial)",
-        ARTEMISA: "🏹 Artemisa (Diana Divina)",
+        ARTEMISA: "🦁 Hércules (Fuerza & Vulnerabilidad)",
         DEMETER: "🌿 Deméter (Zarzas)",
         HERMES: "🪽 Hermes (Oro Global +50%)",
         CRONOS: "⏳ Cronos (Cadencia Global +50%)"
