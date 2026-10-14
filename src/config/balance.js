@@ -29,8 +29,8 @@ export const BALANCE = {
   SELL_REFUND_RATIO: 0.7,     // Recupera el 70% del valor invertido
   UPGRADE_COST_MULTIPLIER: 1.4,// Factor de incremento por cada nivel de torre
 
-  // Escalado de dificultad exponencial
-  ENEMY_HP_GROWTH: 1.07,
+  // Escalado de dificultad exponencial por oleada para la vida de los enemigos
+  ENEMY_HP_GROWTH: 1.1,
 
   // Crecimiento de oro por tramos de oleadas
   GOLD_GROWTH_STAGES: [
@@ -39,11 +39,11 @@ export const BALANCE = {
     { fromWave: 60, base: 1.02  },
   ],
 
-  // Multiplicadores de daño y evolución de torres
-  UPGRADE_DAMAGE_MULT: 1.25,
-  EVOLVE_DAMAGE_MULT: 1.45,
-  HADES_FORM2_MAXDAMAGE_MULT: 1.8,
-  HADES_FORM3_MAXDAMAGE_MULT: 2.0
+  // Multiplicadores de daño y evolución de torres (escalado reducido a la mitad)
+  UPGRADE_DAMAGE_MULT: 1.125,        // +12.5% de daño por nivel (antes +25%)
+  EVOLVE_DAMAGE_MULT: 1.225,         // +22.5% de daño por evolución de forma (antes +45%)
+  HADES_FORM2_MAXDAMAGE_MULT: 1.4,   // +40% de daño máximo en Forma 2 (antes +80%)
+  HADES_FORM3_MAXDAMAGE_MULT: 1.5    // +50% de daño máximo en Forma 3 (antes +100%)
 };
 
 export function goldMultiplier(wave) {

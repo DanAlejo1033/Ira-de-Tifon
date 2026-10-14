@@ -118,17 +118,18 @@ export class Tower {
   getBaseForm3Cost() {
     switch (this.type) {
       case "HERCULES":
-        return 23000;
+      case "ARTEMISA":
+        return 41400; // 23,000 * 1.8 (+80%)
       case "POSEIDON":
-        return 30000;
+        return 54000; // 30,000 * 1.8 (+80%)
       case "HADES":
-        return 27000;
+        return 48600; // 27,000 * 1.8 (+80%)
       case "ZEUS":
-        return 28000;
+        return 50400; // 28,000 * 1.8 (+80%)
       case "ARES":
-        return this.aresBranch === "MINES" ? 25500 : 26500;
+        return this.aresBranch === "MINES" ? 45900 : 47700; // (25,500 / 26,500 * 1.8) (+80%)
       default:
-        return 25000;
+        return 45000; // 25,000 * 1.8 (+80%)
     }
   }
 

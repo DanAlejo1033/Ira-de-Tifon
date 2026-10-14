@@ -4,6 +4,7 @@
  */
 
 import { Vector2 } from '../core/Vector2.js';
+import { BALANCE, goldMultiplier } from '../config/balance.js';
 
 let enemyIdCounter = 1;
 
@@ -13,14 +14,14 @@ export class Enemy {
     this.type = config.type;
     this.name = config.name;
     
-    // Escalado de vida según la oleada (curva suave para arcade infinito)
-    const waveHpScaling = 1 + (waveNumber - 1) * 0.25;
+    // Escalado de vida según la oleada (exponencial según GDD)
+    const waveHpScaling = Math.pow(BALANCE.ENEMY_HP_GROWTH, waveNumber - 1);
     this.maxHp = Math.round(config.hp * waveHpScaling);
     this.hp = this.maxHp;
     
     this.baseSpeed = config.speed;
     this.currentSpeed = this.baseSpeed;
-    this.goldReward = config.goldReward;
+    this.goldReward = config.goldReward * goldMultiplier(waveNumber);
     this.radius = config.radius;
     this.color = config.color;
     this.borderColor = config.borderColor;
@@ -69,7 +70,7 @@ export class Enemy {
     // Si tiene la marca divina de Artemisa, recibe +20% de daño
     let finalDamage = amount;
     if (this.markTimer > 0) {
-      finalDamage = Math.round(amount * (1 + (this.markAmp || 0.30)));
+      finalDamage = Math.round(amount * (1 + (this.markAmp || 0.20)));
     }
 
     this.hp -= finalDamage;
