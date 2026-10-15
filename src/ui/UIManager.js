@@ -12,7 +12,6 @@ export class UIManager {
 
     // Elementos del Top HUD
     this.goldDisplay = document.getElementById("gold-display");
-    this.testGoldBtn = document.getElementById("test-gold-btn");
     this.livesDisplay = document.getElementById("lives-display");
     this.waveDisplay = document.getElementById("wave-display");
     this.enemiesDisplay = document.getElementById("enemies-display");
@@ -92,7 +91,7 @@ export class UIManager {
     this.menuMapPreview = document.getElementById("menu-map-preview");
     this.mapPreviewTag = document.getElementById("map-preview-tag");
     this.modeStoryBtn = document.getElementById("mode-story-btn");
-    this.modeSandboxBtn = document.getElementById("mode-sandbox-btn");
+    this.modeChaosBtn = document.getElementById("mode-chaos-btn");
     this.menuModeDesc = document.getElementById("menu-mode-desc");
 
     // Modal Lore / Prólogo Inicial
@@ -122,6 +121,9 @@ export class UIManager {
     this.stGamesCount = document.getElementById("st-games-count");
     this.stHighestWave = document.getElementById("st-highest-wave");
     this.stEnemiesKilled = document.getElementById("st-enemies-killed");
+    this.stChaosGames = document.getElementById("st-chaos-games");
+    this.stChaosWave = document.getElementById("st-chaos-wave");
+    this.stChaosKills = document.getElementById("st-chaos-kills");
     this.stTutorialStatus = document.getElementById("st-tutorial-status");
     this.stPowersDesc = document.getElementById("st-powers-desc");
 
@@ -142,6 +144,15 @@ export class UIManager {
     this.hudPowerCost = document.getElementById("hud-power-cost");
     this.hudPowerCooldown = document.getElementById("hud-power-cooldown");
     this.hudCooldownText = document.getElementById("hud-cooldown-text");
+
+    // Elementos exclusivos del Modo Caos
+    this.chaosPowersBar = document.getElementById("chaos-powers-bar");
+    this.chaosPowerCards = document.querySelectorAll(".chaos-power-card");
+    this.titanicFuryBanner = document.getElementById("titanic-fury-banner");
+    this.titanicFuryText = document.getElementById("titanic-fury-text");
+    this._titanicFuryTimer = null;
+    this._lastProgressData = null;
+    this._currentMode = "NORMAL";
 
     this.tabBtnPowers = document.getElementById("tab-btn-powers");
     this.tabBtnTowers = document.getElementById("tab-btn-towers");
@@ -257,15 +268,6 @@ export class UIManager {
       }
     });
 
-    // Botón de Prueba: +10,000 Oro para testing
-    if (this.testGoldBtn) {
-      this.testGoldBtn.addEventListener("click", () => {
-        if (this.handlers.onAddTestGold) {
-          this.handlers.onAddTestGold(10000);
-        }
-      });
-    }
-
     // Botón de Pausa en el HUD
     this.pauseBtn.addEventListener("click", () => {
       if (this.pauseBtn.classList.contains("tutorial-locked") || this.pauseBtn.disabled) return;
@@ -360,13 +362,24 @@ export class UIManager {
       });
     }
 
-    if (this.modeSandboxBtn) {
-      this.modeSandboxBtn.addEventListener("click", () => {
+    if (this.modeChaosBtn) {
+      this.modeChaosBtn.addEventListener("click", () => {
         if (this.handlers.onSelectGameMode) {
-          this.handlers.onSelectGameMode("SANDBOX");
+          this.handlers.onSelectGameMode("CHAOS");
         }
       });
     }
+
+    // Botones de invocación individual en Modo Caos (5 poderes del Panteón)
+    this.chaosPowerCards.forEach(card => {
+      card.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const powerId = card.dataset.power;
+        if (this.handlers.onChaosPowerClick) {
+          this.handlers.onChaosPowerClick(powerId);
+        }
+      });
+    });
 
     if (this.menuContinueBtn) {
       this.menuContinueBtn.addEventListener("click", () => {
@@ -815,35 +828,29 @@ export class UIManager {
     }
   }
 
-  showGameOver(wave, gold, kills, games, isSandbox = false) {
+  showGameOver(wave, gold, kills, games, gameMode = "NORMAL") {
     this.goWave.textContent = wave;
     this.goGold.textContent = Math.floor(gold);
     this.goKills.textContent = kills;
-    this.goGames.textContent = isSandbox ? `${games} (Pruebas)` : games;
+    const isChaos = gameMode === "CHAOS" || gameMode === true;
+    this.goGames.textContent = isChaos ? `${games} (Caos)` : games;
     this.gameOverModal.classList.remove("hidden");
   }
 
   setGameMode(mode = "NORMAL") {
-    const isSandbox = mode === "SANDBOX";
+    const isChaos = mode === "CHAOS";
+
     if (this.modeStoryBtn) {
-      if (!isSandbox) {
-        this.modeStoryBtn.classList.add("active");
-      } else {
-        this.modeStoryBtn.classList.remove("active");
-      }
+      this.modeStoryBtn.classList.toggle("active", mode === "NORMAL");
     }
-    if (this.modeSandboxBtn) {
-      if (isSandbox) {
-        this.modeSandboxBtn.classList.add("active");
-      } else {
-        this.modeSandboxBtn.classList.remove("active");
-      }
+    if (this.modeChaosBtn) {
+      this.modeChaosBtn.classList.toggle("active", isChaos);
     }
 
     if (this.menuModeDesc) {
-      if (isSandbox) {
-        this.menuModeDesc.textContent = "Modo Pruebas / Sandbox · Todo desbloqueado · Botón +10,000 🪙 disponible";
-        this.menuModeDesc.style.color = "#fde047";
+      if (isChaos) {
+        this.menuModeDesc.textContent = "Modo Caos · Arcade Extremo · Panteón de 5 poderes activos · Furia Titánica";
+        this.menuModeDesc.style.color = "#fb923c";
       } else {
         this.menuModeDesc.textContent = "Progresión legítima · Desbloqueo de bendiciones divinas";
         this.menuModeDesc.style.color = "#94a3b8";
@@ -851,24 +858,27 @@ export class UIManager {
     }
 
     if (this.mapPreviewTag) {
-      this.mapPreviewTag.textContent = isSandbox ? "CAMINO DE FLEGRA · PRUEBAS" : "CAMINO DE FLEGRA · HISTORIA";
+      this.mapPreviewTag.textContent = isChaos ? "CAMINO DE FLEGRA · MODO CAOS" : "CAMINO DE FLEGRA · HISTORIA";
     }
 
-    if (this.testGoldBtn) {
-      if (isSandbox) {
-        this.testGoldBtn.classList.remove("hidden-mode");
+    // Alternar visibilidad de HUD de poderes: Botón individual vs Barra de 5 poderes
+    if (this.chaosPowersBar) {
+      if (isChaos) {
+        this.chaosPowersBar.classList.remove("hidden");
       } else {
-        this.testGoldBtn.classList.add("hidden-mode");
+        this.chaosPowersBar.classList.add("hidden");
       }
     }
-  }
+    if (this.btnCastPower) {
+      if (isChaos) {
+        this.btnCastPower.classList.add("hidden");
+      } else {
+        this.btnCastPower.classList.remove("hidden");
+      }
+    }
 
-  showTestGoldButton(show = true) {
-    if (!this.testGoldBtn) return;
-    if (show) {
-      this.testGoldBtn.classList.remove("hidden-mode");
-    } else {
-      this.testGoldBtn.classList.add("hidden-mode");
+    if (this._lastProgressData) {
+      this.updateMenuStats(this._lastProgressData, mode);
     }
   }
 
@@ -880,7 +890,7 @@ export class UIManager {
       const gold = activeMatch.economy ? Math.floor(activeMatch.economy.gold) : 0;
       const lives = activeMatch.economy ? activeMatch.economy.lives : 20;
       const isWaveActive = Boolean(activeMatch.waveManager && activeMatch.waveManager.isWaveActive);
-      const modeTag = activeMatch.gameMode === "SANDBOX" ? "[Pruebas] " : "";
+      const modeTag = activeMatch.gameMode === "CHAOS" ? "[Modo Caos] " : "";
       const waveText = wave === 0 ? "Oleada 1 (Prep.)" : (isWaveActive ? `Oleada ${wave} (En combate)` : `Oleada ${wave} lista`);
       if (this.menuContinueDetails) {
         this.menuContinueDetails.textContent = `${modeTag}${waveText} · 🪙 ${gold.toLocaleString()} · 🏛️ ${lives} vidas`;
@@ -890,8 +900,10 @@ export class UIManager {
     }
   }
 
-  openMainMenu(progressData, activeMatch = null) {
-    this.updateMenuStats(progressData);
+  openMainMenu(progressData, currentMode = "NORMAL", activeMatch = null) {
+    this._lastProgressData = progressData;
+    this._currentMode = currentMode;
+    this.updateMenuStats(progressData, currentMode);
     this.updateContinueButton(activeMatch);
     this.mainMenuModal.classList.remove("hidden");
     if (this.handlers.onRenderMenuMap) {
@@ -1120,24 +1132,42 @@ export class UIManager {
     this.sellBtn.classList.remove("tutorial-locked");
   }
 
-  updateMenuStats(progressData) {
+  updateMenuStats(progressData, currentMode = "NORMAL") {
     if (!progressData) return;
-    const games = progressData.gamesPlayed || 0;
-    const wave = progressData.highestWave || 0;
-    const kills = progressData.totalEnemiesKilled || 0;
-    if (this.menuRecordWave) {
-      this.menuRecordWave.textContent = `Oleada ${wave}`;
-    }
-    if (this.menuRecordKills) {
-      this.menuRecordKills.textContent = kills;
-    }
-    if (this.menuSummaryStats) {
-      this.menuSummaryStats.textContent = `Partidas: ${games} · Récord: Oleada ${wave}`;
+    this._lastProgressData = progressData;
+    this._currentMode = currentMode;
+
+    if (currentMode === "CHAOS") {
+      const chaosGames = progressData.chaosGamesPlayed || 0;
+      const chaosWave = progressData.chaosHighestWave || 0;
+      const chaosKills = progressData.chaosEnemiesKilled || 0;
+      if (this.menuRecordWave) {
+        this.menuRecordWave.textContent = `Oleada ${chaosWave}`;
+      }
+      if (this.menuRecordKills) {
+        this.menuRecordKills.textContent = chaosKills;
+      }
+      if (this.menuSummaryStats) {
+        this.menuSummaryStats.textContent = `Partidas Caos: ${chaosGames} · Récord Caos: Oleada ${chaosWave}`;
+      }
+    } else {
+      const games = progressData.gamesPlayed || 0;
+      const wave = progressData.highestWave || 0;
+      const kills = progressData.totalEnemiesKilled || 0;
+      if (this.menuRecordWave) {
+        this.menuRecordWave.textContent = `Oleada ${wave}`;
+      }
+      if (this.menuRecordKills) {
+        this.menuRecordKills.textContent = kills;
+      }
+      if (this.menuSummaryStats) {
+        this.menuSummaryStats.textContent = `Partidas: ${games} · Récord: Oleada ${wave}`;
+      }
     }
   }
 
-  openPowersScreen(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
-    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
+  openPowersScreen(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
+    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed);
     if (this.mainMenuModal) this.mainMenuModal.classList.add("hidden");
     if (this.powersScreen) this.powersScreen.classList.remove("hidden");
   }
@@ -1150,8 +1180,8 @@ export class UIManager {
   }
 
   // Alias para mantener compatibilidad con llamadas existentes
-  openCodex(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
-    this.openPowersScreen(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
+  openCodex(equippedPowerId = "DEMETER", unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
+    this.openPowersScreen(equippedPowerId, unlockedPowers, gamesPlayed);
   }
 
   closeCodex() {
@@ -1162,13 +1192,13 @@ export class UIManager {
     // Si se usan pestañas en el códice
   }
 
-  updatePowersScreenCards(equippedPowerId, unlockedPowers = ["DEMETER"], gamesPlayed = 0, isSandbox = false) {
+  updatePowersScreenCards(equippedPowerId, unlockedPowers = ["DEMETER"], gamesPlayed = 0) {
     document.querySelectorAll(".power-god-card").forEach(card => {
       const pId = card.dataset.power;
       const btn = card.querySelector(".god-card-equip-btn");
       const conf = POWERS_DATA[pId];
       const reqGames = conf ? conf.unlockGames : 0;
-      const isUnlocked = isSandbox || (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
+      const isUnlocked = (unlockedPowers && unlockedPowers.includes(pId)) || gamesPlayed >= reqGames;
 
       // Sincronizar dinámicamente chips de costo y enfriamiento desde POWERS_DATA
       if (conf) {
@@ -1229,23 +1259,23 @@ export class UIManager {
         CRONOS: "⏳ Cronos (Cadencia Global +50%)"
       };
       if (!equippedPowerId) {
-        this.powersEquippedStatusText.textContent = isSandbox ? "Ninguna (Selecciona una bendición)" : "Ninguna (Desbloquea a Hera a las 5 partidas)";
+        this.powersEquippedStatusText.textContent = "Ninguna (Desbloquea a Hera a las 5 partidas)";
       } else {
         this.powersEquippedStatusText.textContent = names[equippedPowerId] || `✨ ${equippedPowerId}`;
       }
     }
   }
 
-  updateAltarPowers(equippedPowerId, unlockedPowers = [], gamesPlayed = 0, isSandbox = false) {
-    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed, isSandbox);
+  updateAltarPowers(equippedPowerId, unlockedPowers = [], gamesPlayed = 0) {
+    this.updatePowersScreenCards(equippedPowerId, unlockedPowers, gamesPlayed);
   }
 
-  updateMenuEquippedPower(powerConfig, isSandbox = false) {
+  updateMenuEquippedPower(powerConfig) {
     const iconEl = document.getElementById("menu-skill-icon");
     const descEl = document.getElementById("menu-skill-desc");
     if (!powerConfig) {
-      if (iconEl) iconEl.textContent = isSandbox ? "⚡" : "🔒";
-      if (descEl) descEl.textContent = isSandbox ? "Sin bendición (Elige una)" : "Sin bendición (5 partidas)";
+      if (iconEl) iconEl.textContent = "🔒";
+      if (descEl) descEl.textContent = "Sin bendición (5 partidas)";
       return;
     }
     if (iconEl) iconEl.textContent = powerConfig.icon;
@@ -1339,6 +1369,10 @@ export class UIManager {
     this.stHighestWave.textContent = progressData.highestWave || 0;
     this.stEnemiesKilled.textContent = progressData.totalEnemiesKilled || 0;
     
+    if (this.stChaosGames) this.stChaosGames.textContent = progressData.chaosGamesPlayed || 0;
+    if (this.stChaosWave) this.stChaosWave.textContent = `Oleada ${progressData.chaosHighestWave || 0}`;
+    if (this.stChaosKills) this.stChaosKills.textContent = progressData.chaosEnemiesKilled || 0;
+
     if (progressData.tutorialCompleted) {
       this.stTutorialStatus.textContent = "Completado ✓";
       this.stTutorialStatus.style.color = "#86efac";
@@ -1399,6 +1433,70 @@ export class UIManager {
     this.athenaTimer = setTimeout(() => {
       this.athenaBanner.classList.add("hidden");
     }, duration);
+  }
+
+  updateChaosPowersHud(powersStatus, currentGold) {
+    if (!this.chaosPowersBar || !powersStatus) return;
+    for (const card of this.chaosPowerCards) {
+      const powerId = card.dataset.power;
+      const status = powersStatus[powerId];
+      if (!status) continue;
+
+      const overlay = card.querySelector(".chaos-cooldown-overlay");
+      const cdText = card.querySelector(".chaos-cd-text");
+      const costEl = card.querySelector(".chaos-power-cost");
+      if (costEl && status.config) {
+        costEl.textContent = `🪙 ${status.config.goldCost}`;
+      }
+
+      card.classList.remove("ready-to-cast", "targeting-active", "power-currently-active", "cannot-afford");
+
+      if (status.activeEffectRemaining > 0) {
+        card.classList.add("power-currently-active");
+        if (overlay) {
+          overlay.classList.remove("hidden");
+          overlay.classList.add("is-active-effect");
+        }
+        if (cdText) {
+          cdText.textContent = `★ ${Math.ceil(status.activeEffectRemaining)}s`;
+        }
+      } else if (status.cooldownRemaining > 0) {
+        if (overlay) {
+          overlay.classList.remove("hidden");
+          overlay.classList.remove("is-active-effect");
+        }
+        if (cdText) {
+          cdText.textContent = `${Math.ceil(status.cooldownRemaining)}s`;
+        }
+      } else {
+        if (overlay) {
+          overlay.classList.add("hidden");
+          overlay.classList.remove("is-active-effect");
+        }
+        if (status.isTargeting) {
+          card.classList.add("targeting-active");
+        } else if (status.canAfford) {
+          card.classList.add("ready-to-cast");
+        } else {
+          card.classList.add("cannot-afford");
+        }
+      }
+    }
+  }
+
+  showTitanicFuryBanner(wave, type, buffPercent = 30) {
+    if (!this.titanicFuryBanner || !this.titanicFuryText) return;
+    const typeText = type === "SPEED" ? "VELOCIDAD EXTRA" : "RESISTENCIA EXTRA";
+    const icon = type === "SPEED" ? "⚡" : "🛡️";
+    this.titanicFuryText.textContent = `¡FURIA TITÁNICA (OLEADA ${wave})! ${icon} +${buffPercent}% ${typeText}`;
+    this.titanicFuryBanner.classList.remove("hidden");
+
+    if (this._titanicFuryTimer) clearTimeout(this._titanicFuryTimer);
+    this._titanicFuryTimer = setTimeout(() => {
+      if (this.titanicFuryBanner) {
+        this.titanicFuryBanner.classList.add("hidden");
+      }
+    }, 4200);
   }
 }
 

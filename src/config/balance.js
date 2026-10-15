@@ -50,6 +50,16 @@ export const BALANCE = {
     ARES:     { 2: 453.6, 3: 4901.4 },
     POSEIDON: { 2: 151.2, 3: 1633.8 },
     HADES:    { 2: 1340,  3: 19990  },   // se aplican sobre maxDamage; baseDamage de Hades (rampa) no cambia
+  },
+
+  // Configuración del Modo Caos (Arcade Extremo & Rejugable)
+  CHAOS: {
+    STARTING_GOLD: 350,               // 350 Dracmas iniciales
+    STARTING_LIVES: 10,              // 10 Vidas del Olimpo (desafío arcade implacable)
+    SPAWN_INTERVAL_BASE: 0.55,       // Intervalo base acelerado entre monstruos
+    SPAWN_INTERVAL_MIN: 0.28,        // Mínimo intervalo de spawn en oleadas avanzadas
+    TITANIC_FURY_INTERVAL: 3,        // Cada 3 oleadas se desata Furia Titánica
+    TITANIC_FURY_BUFF: 1.30          // +30% de velocidad o resistencia extra
   }
 };
 

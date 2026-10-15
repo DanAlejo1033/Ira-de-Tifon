@@ -11,10 +11,10 @@ export class EconomyManager {
     this.totalGoldEarned = BALANCE.STARTING_GOLD;
   }
 
-  reset() {
-    this.gold = BALANCE.STARTING_GOLD;
-    this.lives = BALANCE.STARTING_LIVES;
-    this.totalGoldEarned = BALANCE.STARTING_GOLD;
+  reset(initialGold = BALANCE.STARTING_GOLD, initialLives = BALANCE.STARTING_LIVES) {
+    this.gold = initialGold;
+    this.lives = initialLives;
+    this.totalGoldEarned = initialGold;
   }
 
   canAfford(amount) {

@@ -30,6 +30,25 @@ export class PowerManager {
     // Buffs globales activos
     this.hermesTimer = 0;
     this.cronosTimer = 0;
+
+    // Modo Caos: control individual de los 5 poderes simultáneos
+    this.isChaosMode = false;
+    this.chaosTargetingPowerId = null;
+    this.chaosCooldowns = { DEMETER: 0, HERA: 0, ARTEMISA: 0, HERMES: 0, CRONOS: 0 };
+    this.chaosActiveEffects = { DEMETER: 0, HERA: 0, ARTEMISA: 0, HERMES: 0, CRONOS: 0 };
+  }
+
+  setChaosMode(enabled) {
+    this.isChaosMode = Boolean(enabled);
+    this.isTargeting = false;
+    this.chaosTargetingPowerId = null;
+  }
+
+  getTargetingPowerConfig() {
+    if (this.isChaosMode && this.chaosTargetingPowerId) {
+      return POWERS_DATA[this.chaosTargetingPowerId] || null;
+    }
+    return this.getEquippedPowerConfig();
   }
 
   getEquippedPowerConfig() {
@@ -37,10 +56,10 @@ export class PowerManager {
     return POWERS_DATA[this.equippedPowerId] || null;
   }
 
-  setEquippedPower(powerId, isSandbox = false) {
+  setEquippedPower(powerId) {
     if (powerId === null) {
       this.equippedPowerId = null;
-      this.progress.setEquippedPower(null, isSandbox);
+      this.progress.setEquippedPower(null);
       this.cooldownRemaining = 0;
       this.activeEffectRemaining = 0;
       this.isTargeting = false;
@@ -48,7 +67,7 @@ export class PowerManager {
     }
     if (POWERS_DATA[powerId]) {
       this.equippedPowerId = powerId;
-      this.progress.setEquippedPower(powerId, isSandbox);
+      this.progress.setEquippedPower(powerId);
       this.cooldownRemaining = 0;
       this.activeEffectRemaining = 0;
       this.isTargeting = false;
@@ -60,6 +79,9 @@ export class PowerManager {
     this.cooldownRemaining = 0;
     this.activeEffectRemaining = 0;
     this.isTargeting = false;
+    this.chaosTargetingPowerId = null;
+    this.chaosCooldowns = { DEMETER: 0, HERA: 0, ARTEMISA: 0, HERMES: 0, CRONOS: 0 };
+    this.chaosActiveEffects = { DEMETER: 0, HERA: 0, ARTEMISA: 0, HERMES: 0, CRONOS: 0 };
     this.activeZones = [];
     this.hermesTimer = 0;
     this.cronosTimer = 0;
@@ -74,7 +96,7 @@ export class PowerManager {
   startCast() {
     const config = this.getEquippedPowerConfig();
     if (!config) {
-      return { success: false, reason: "Aún no tienes bendiciones divinas. ¡Juega 5 partidas o activa el Modo Pruebas en el menú!" };
+      return { success: false, reason: "Aún no tienes bendiciones divinas equipadas. ¡Juega en Modo Historia para desbloquearlas o elige Modo Caos!" };
     }
     if (this.activeEffectRemaining > 0) {
       return { success: false, reason: `Efecto divino activo (${Math.ceil(this.activeEffectRemaining)}s)` };
@@ -100,8 +122,70 @@ export class PowerManager {
     return { success: true, mode: "ZONE_TARGETING", config };
   }
 
+  /**
+   * Invoca uno de los 5 poderes divinos en Modo Caos (con atajos 1 a 5 o clic).
+   */
+  startChaosCast(powerId) {
+    const config = POWERS_DATA[powerId];
+    if (!config) return { success: false, reason: "Poder inválido" };
+
+    const active = this.chaosActiveEffects[powerId] || 0;
+    const cd = this.chaosCooldowns[powerId] || 0;
+
+    if (active > 0) {
+      return { success: false, reason: `Efecto de ${config.name} activo (${Math.ceil(active)}s)` };
+    }
+    if (cd > 0) {
+      return { success: false, reason: `${config.name} en enfriamiento (${Math.ceil(cd)}s)` };
+    }
+    if (!this.economy.canAfford(config.goldCost)) {
+      return { success: false, reason: `Oro insuficiente (requiere 🪙 ${config.goldCost})` };
+    }
+
+    if (config.type === "GLOBAL") {
+      const executed = this.executeGlobalCast(powerId);
+      return { success: executed, mode: "GLOBAL", config };
+    }
+
+    // Si ya estábamos apuntando con este mismo poder, alternar cancelación
+    if (this.isTargeting && this.chaosTargetingPowerId === powerId) {
+      this.cancelCast();
+      return { success: false, reason: "Apuntado cancelado", cancelled: true };
+    }
+
+    this.isTargeting = true;
+    this.chaosTargetingPowerId = powerId;
+    if (!this.mouseWorldPos || (this.mouseWorldPos.x === 0 && this.mouseWorldPos.y === 0)) {
+      this.mouseWorldPos = new Vector2(512, 320);
+    }
+    return { success: true, mode: "ZONE_TARGETING", config };
+  }
+
+  getChaosPowersStatus() {
+    const result = {};
+    const powerIds = ["DEMETER", "HERA", "ARTEMISA", "HERMES", "CRONOS"];
+    for (const id of powerIds) {
+      const config = POWERS_DATA[id];
+      const active = this.chaosActiveEffects[id] || 0;
+      const cd = this.chaosCooldowns[id] || 0;
+      const canAfford = this.economy.canAfford(config.goldCost);
+      const isReady = active <= 0 && cd <= 0 && canAfford;
+      result[id] = {
+        id,
+        config,
+        activeEffectRemaining: active,
+        cooldownRemaining: cd,
+        canAfford,
+        isReady,
+        isTargeting: this.isTargeting && this.chaosTargetingPowerId === id
+      };
+    }
+    return result;
+  }
+
   cancelCast() {
     this.isTargeting = false;
+    this.chaosTargetingPowerId = null;
   }
 
   updateMousePos(x, y) {
@@ -112,17 +196,30 @@ export class PowerManager {
   /**
    * Ejecuta el lanzamiento de una habilidad de zona en las coordenadas (x, y).
    */
-  executeZoneCast(worldX, worldY, enemies = [], towers = []) {
-    const config = this.getEquippedPowerConfig();
+  executeZoneCast(worldX, worldY, enemies = [], towers = [], powerIdOverride = null) {
+    const powerId = powerIdOverride || (this.isChaosMode ? this.chaosTargetingPowerId : this.equippedPowerId);
+    const config = POWERS_DATA[powerId] || this.getEquippedPowerConfig();
+    if (!config) {
+      this.isTargeting = false;
+      this.chaosTargetingPowerId = null;
+      return false;
+    }
     if (!this.economy.spendGold(config.goldCost)) {
       this.isTargeting = false;
+      this.chaosTargetingPowerId = null;
       return false;
     }
 
     // El contador de cooldown NO inicia aquí; se inicia solo cuando acaba el efecto
     const effectDuration = config.id === "HERA" ? 1.2 : config.duration;
-    this.activeEffectRemaining = effectDuration;
-    this.cooldownRemaining = 0;
+    if (this.isChaosMode) {
+      this.chaosActiveEffects[config.id] = effectDuration;
+      this.chaosCooldowns[config.id] = 0;
+      this.chaosTargetingPowerId = null;
+    } else {
+      this.activeEffectRemaining = effectDuration;
+      this.cooldownRemaining = 0;
+    }
     this.isTargeting = false;
 
     const targetPos = new Vector2(worldX, worldY);
@@ -204,15 +301,22 @@ export class PowerManager {
   /**
    * Ejecuta una habilidad global (Hermes o Cronos).
    */
-  executeGlobalCast() {
-    const config = this.getEquippedPowerConfig();
+  executeGlobalCast(powerIdOverride = null) {
+    const powerId = powerIdOverride || (this.isChaosMode ? this.chaosTargetingPowerId : this.equippedPowerId);
+    const config = POWERS_DATA[powerId] || this.getEquippedPowerConfig();
+    if (!config) return false;
     if (!this.economy.spendGold(config.goldCost)) {
       return false;
     }
 
     // El contador de cooldown NO inicia aquí; se inicia solo cuando acaba el efecto activo
-    this.activeEffectRemaining = config.duration;
-    this.cooldownRemaining = 0;
+    if (this.isChaosMode) {
+      this.chaosActiveEffects[config.id] = config.duration;
+      this.chaosCooldowns[config.id] = 0;
+    } else {
+      this.activeEffectRemaining = config.duration;
+      this.cooldownRemaining = 0;
+    }
     this.isTargeting = false;
 
     if (config.id === "HERMES") {
@@ -241,18 +345,33 @@ export class PowerManager {
   }
 
   update(dt, isWaitingWave, enemies = [], towers = []) {
-    // 1. Contador de duración del efecto activo
-    if (this.activeEffectRemaining > 0) {
-      this.activeEffectRemaining = Math.max(0, this.activeEffectRemaining - dt);
-      // El contador de cooldown SOLO inicia cuando acaba el efecto
-      if (this.activeEffectRemaining <= 0) {
-        const config = this.getEquippedPowerConfig();
-        this.cooldownRemaining = config ? config.cooldown : 0;
+    if (this.isChaosMode) {
+      // Gestión individual de los 5 poderes en Modo Caos
+      const powerIds = ["DEMETER", "HERA", "ARTEMISA", "HERMES", "CRONOS"];
+      for (const id of powerIds) {
+        if (this.chaosActiveEffects[id] > 0) {
+          this.chaosActiveEffects[id] = Math.max(0, this.chaosActiveEffects[id] - dt);
+          if (this.chaosActiveEffects[id] <= 0) {
+            this.chaosCooldowns[id] = POWERS_DATA[id].cooldown;
+          }
+        } else if (!isWaitingWave && this.chaosCooldowns[id] > 0) {
+          this.chaosCooldowns[id] = Math.max(0, this.chaosCooldowns[id] - dt);
+        }
       }
     } else {
-      // 2. Enfriamiento (según el GDD: se pausa mientras se espera entre oleadas)
-      if (!isWaitingWave && this.cooldownRemaining > 0) {
-        this.cooldownRemaining = Math.max(0, this.cooldownRemaining - dt);
+      // 1. Contador de duración del efecto activo (Modo Historia)
+      if (this.activeEffectRemaining > 0) {
+        this.activeEffectRemaining = Math.max(0, this.activeEffectRemaining - dt);
+        // El contador de cooldown SOLO inicia cuando acaba el efecto
+        if (this.activeEffectRemaining <= 0) {
+          const config = this.getEquippedPowerConfig();
+          this.cooldownRemaining = config ? config.cooldown : 0;
+        }
+      } else {
+        // 2. Enfriamiento (según el GDD: se pausa mientras se espera entre oleadas)
+        if (!isWaitingWave && this.cooldownRemaining > 0) {
+          this.cooldownRemaining = Math.max(0, this.cooldownRemaining - dt);
+        }
       }
     }
 

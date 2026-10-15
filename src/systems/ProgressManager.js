@@ -28,6 +28,9 @@ export class ProgressManager {
           gamesPlayed: games,
           highestWave: parsed.highestWave || 0,
           totalEnemiesKilled: parsed.totalEnemiesKilled || 0,
+          chaosGamesPlayed: parsed.chaosGamesPlayed || 0,
+          chaosHighestWave: parsed.chaosHighestWave || 0,
+          chaosEnemiesKilled: parsed.chaosEnemiesKilled || 0,
           tutorialCompleted: parsed.tutorialCompleted || false,
           loreSeen: parsed.loreSeen || false,
           unlockedPowers: unlocked,
@@ -42,6 +45,9 @@ export class ProgressManager {
       gamesPlayed: 0,
       highestWave: 0,
       totalEnemiesKilled: 0,
+      chaosGamesPlayed: 0,
+      chaosHighestWave: 0,
+      chaosEnemiesKilled: 0,
       tutorialCompleted: false,
       loreSeen: false,
       unlockedPowers: [],
@@ -90,8 +96,21 @@ export class ProgressManager {
     };
   }
 
-  isPowerUnlocked(powerId, isSandbox = false) {
-    if (isSandbox) return true;
+  recordChaosGameFinished(waveReached, enemiesKilled) {
+    this.data.chaosGamesPlayed = (this.data.chaosGamesPlayed || 0) + 1;
+    if (waveReached > (this.data.chaosHighestWave || 0)) {
+      this.data.chaosHighestWave = waveReached;
+    }
+    this.data.chaosEnemiesKilled = (this.data.chaosEnemiesKilled || 0) + enemiesKilled;
+    this.saveProgress();
+    return {
+      chaosGamesPlayed: this.data.chaosGamesPlayed,
+      chaosHighestWave: this.data.chaosHighestWave,
+      chaosEnemiesKilled: this.data.chaosEnemiesKilled
+    };
+  }
+
+  isPowerUnlocked(powerId) {
     return Boolean(this.data.unlockedPowers && this.data.unlockedPowers.includes(powerId));
   }
 
@@ -118,6 +137,9 @@ export class ProgressManager {
       gamesPlayed: 0,
       highestWave: 0,
       totalEnemiesKilled: 0,
+      chaosGamesPlayed: 0,
+      chaosHighestWave: 0,
+      chaosEnemiesKilled: 0,
       tutorialCompleted: false,
       loreSeen: false,
       unlockedPowers: [],
@@ -135,14 +157,23 @@ export class ProgressManager {
     return this.data.highestWave;
   }
 
+  getChaosHighestWave() {
+    return this.data.chaosHighestWave || 0;
+  }
+
+  getChaosEnemiesKilled() {
+    return this.data.chaosEnemiesKilled || 0;
+  }
+
+  getChaosGamesPlayed() {
+    return this.data.chaosGamesPlayed || 0;
+  }
+
   getTotalEnemiesKilled() {
     return this.data.totalEnemiesKilled;
   }
 
-  getUnlockedPowers(isSandbox = false) {
-    if (isSandbox) {
-      return ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"];
-    }
+  getUnlockedPowers() {
     return this.data.unlockedPowers || [];
   }
 
@@ -150,8 +181,8 @@ export class ProgressManager {
     return this.data.equippedPower || null;
   }
 
-  setEquippedPower(powerId, isSandbox = false) {
-    if (powerId === null || this.isPowerUnlocked(powerId, isSandbox)) {
+  setEquippedPower(powerId) {
+    if (powerId === null || this.isPowerUnlocked(powerId)) {
       this.data.equippedPower = powerId;
       this.saveProgress();
     }

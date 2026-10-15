@@ -48,6 +48,22 @@ export class Enemy {
     this.stunTimer = 0;
     this.markTimer = 0;
     this.markAmp = 0;
+
+    // Furia Titánica (Modo Caos: oleadas 3, 6, 9...)
+    this.hasTitanicFury = false;
+    this.furyType = null; // "SPEED" o "RESISTANCE"
+  }
+
+  applyTitanicFury(furyType = "SPEED", buffMultiplier = 1.30) {
+    this.hasTitanicFury = true;
+    this.furyType = furyType;
+    if (furyType === "SPEED") {
+      this.baseSpeed *= buffMultiplier;
+      this.currentSpeed = this.baseSpeed;
+    } else {
+      this.maxHp = Math.round(this.maxHp * buffMultiplier);
+      this.hp = this.maxHp;
+    }
   }
 
   setPartner(otherEnemy) {

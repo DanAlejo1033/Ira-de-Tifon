@@ -598,6 +598,32 @@ export class Renderer {
         ctx.restore();
       }
 
+      // Furia Titánica (Modo Caos: +30% Velocidad o Resistencia)
+      if (enemy.hasTitanicFury) {
+        ctx.save();
+        ctx.beginPath();
+        const furyPulse = Math.sin((this.time || 0) * 8) * 2;
+        ctx.arc(x, y, enemy.radius + 6 + furyPulse, 0, Math.PI * 2);
+        if (enemy.furyType === "SPEED") {
+          ctx.strokeStyle = "#eab308"; // Aura ámbar/rayo veloz
+          ctx.fillStyle = "rgba(234, 179, 8, 0.22)";
+        } else {
+          ctx.strokeStyle = "#dc2626"; // Aura volcánica/carmesí resistente
+          ctx.fillStyle = "rgba(220, 38, 38, 0.25)";
+        }
+        ctx.lineWidth = 2.2;
+        ctx.setLineDash([4, 3]);
+        ctx.lineDashOffset = (this.time || 0) * 15;
+        ctx.fill();
+        ctx.stroke();
+
+        // Icono indicador de bendición titánica
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(enemy.furyType === "SPEED" ? "⚡" : "🛡️", x, y - enemy.radius - 12);
+        ctx.restore();
+      }
+
       // Cuerpo del enemigo
       ctx.beginPath();
       ctx.arc(x, y, enemy.radius, 0, Math.PI * 2);

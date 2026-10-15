@@ -26,6 +26,13 @@ export class WaveManager {
     this.totalEnemiesKilled = 0;
     this.enemiesLeakedThisWave = 0;
     this.currentWaveTotalHp = 0;
+    this.isChaosMode = false;
+    this.onTitanicFuryCallback = null;
+  }
+
+  setChaosMode(enabled, onTitanicFuryCallback = null) {
+    this.isChaosMode = Boolean(enabled);
+    this.onTitanicFuryCallback = onTitanicFuryCallback;
   }
 
   reset() {
@@ -38,6 +45,8 @@ export class WaveManager {
     this.totalEnemiesKilled = 0;
     this.enemiesLeakedThisWave = 0;
     this.currentWaveTotalHp = 0;
+    this.isChaosMode = false;
+    this.onTitanicFuryCallback = null;
   }
 
   // Getter de compatibilidad
@@ -130,7 +139,36 @@ export class WaveManager {
     this.isWaveActive = true;
 
     // Generar la composición de la nueva oleada
-    const newEnemies = this.generateWaveComposition(this.currentWave);
+    let newEnemies;
+    let interval;
+
+    if (this.isChaosMode) {
+      newEnemies = this.generateChaosWaveComposition(this.currentWave);
+      // Spawn acelerado de alta densidad (0.55s base bajando hasta 0.28s)
+      const chaosBase = BALANCE.CHAOS?.SPAWN_INTERVAL_BASE || 0.55;
+      const chaosMin = BALANCE.CHAOS?.SPAWN_INTERVAL_MIN || 0.28;
+      interval = Math.max(chaosMin, chaosBase - (this.currentWave * 0.012));
+
+      // Furia Titánica cada 3 oleadas (Oleadas 3, 6, 9, 12...)
+      const furyInterval = BALANCE.CHAOS?.TITANIC_FURY_INTERVAL || 3;
+      if (this.currentWave % furyInterval === 0) {
+        const furyCycle = Math.floor(this.currentWave / furyInterval);
+        const furyType = (furyCycle % 2 === 1) ? 'SPEED' : 'RESISTANCE';
+        const buffMultiplier = BALANCE.CHAOS?.TITANIC_FURY_BUFF || 1.30;
+
+        for (const enemy of newEnemies) {
+          enemy.applyTitanicFury(furyType, buffMultiplier);
+        }
+
+        if (this.onTitanicFuryCallback) {
+          this.onTitanicFuryCallback(this.currentWave, furyType, 30);
+        }
+      }
+    } else {
+      newEnemies = this.generateWaveComposition(this.currentWave);
+      interval = Math.max(0.45, this.spawnInterval - Math.min(0.35, this.currentWave * 0.02));
+    }
+
     for (const enemy of newEnemies) {
       const hp = (enemy.maxHp || enemy.hp || 0);
       this.currentWaveTotalHp += hp;
@@ -139,7 +177,6 @@ export class WaveManager {
 
     // Crear un canal de spawn independiente y concurrente para esta oleada
     // timer = 0 permite que la primera entidad nazca INMEDIATAMENTE al adelantar la oleada
-    const interval = Math.max(0.45, this.spawnInterval - Math.min(0.35, this.currentWave * 0.02));
     this.activeSpawners.push({
       wave: this.currentWave,
       queue: newEnemies,
@@ -232,6 +269,104 @@ export class WaveManager {
       for (let i = 0; i < countGiants; i++) {
         list.push(new Enemy(ENEMIES.GIANT, waypoints, wave));
       }
+    }
+
+    return list;
+  }
+
+  /**
+   * Generación caótica, masiva y anárquica para el MODO CAOS.
+   * Monstruos avanzados desde la oleada 1, parejas Alóadas desde oleada 2, Gigantes desde oleada 3,
+   * y una densidad masiva con interleaving pseudo-aleatorio para alta rejugabilidad.
+   */
+  generateChaosWaveComposition(wave) {
+    const list = [];
+    const waypoints = this.grid.getWaypoints();
+
+    let countNormal = 0;
+    let countFast = 0;
+    let countTank = 0;
+    let countPairs = 0;
+    let countGiants = 0;
+
+    if (wave === 1) {
+      countNormal = 9;
+      countFast = 5;
+      countTank = 1;
+      countPairs = 0;
+      countGiants = 0;
+    } else if (wave === 2) {
+      countNormal = 8;
+      countFast = 6;
+      countTank = 2;
+      countPairs = 1;
+      countGiants = 0;
+    } else if (wave === 3) {
+      countNormal = 9;
+      countFast = 7;
+      countTank = 2;
+      countPairs = 1;
+      countGiants = 1;
+    } else {
+      // Oleada 4+: escalado arcade infinito denso
+      countNormal = 8 + Math.floor(wave * 1.5);
+      countFast = 6 + Math.floor(wave * 1.2);
+      countTank = 2 + Math.floor(wave * 0.6);
+      countPairs = 1 + Math.floor(wave / 3);
+      countGiants = Math.floor(wave / 2.5);
+    }
+
+    // Crear lista de enemigos individuales para barajar (anarquía)
+    const singles = [];
+    for (let i = 0; i < countNormal; i++) {
+      singles.push(new Enemy(ENEMIES.NORMAL, waypoints, wave));
+    }
+    for (let i = 0; i < countFast; i++) {
+      singles.push(new Enemy(ENEMIES.FAST, waypoints, wave));
+    }
+    for (let i = 0; i < countTank; i++) {
+      singles.push(new Enemy(ENEMIES.TANK, waypoints, wave));
+    }
+    for (let i = 0; i < countGiants; i++) {
+      singles.push(new Enemy(ENEMIES.GIANT, waypoints, wave));
+    }
+
+    // Barajar ligeramente las unidades individuales para orden impredecible
+    for (let i = singles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = singles[i];
+      singles[i] = singles[j];
+      singles[j] = temp;
+    }
+
+    // Crear parejas Alóadas y vincularlas
+    const pairs = [];
+    for (let i = 0; i < countPairs; i++) {
+      const a1 = new Enemy(ENEMIES.ALOADAE, waypoints, wave);
+      const a2 = new Enemy(ENEMIES.ALOADAE, waypoints, wave);
+      a1.setPartner(a2);
+      pairs.push([a1, a2]);
+    }
+
+    // Insertar las parejas distribuidas entre las unidades individuales
+    if (pairs.length === 0) {
+      return singles;
+    }
+
+    const step = Math.max(3, Math.floor(singles.length / (pairs.length + 1)));
+    let currentPairIdx = 0;
+
+    for (let i = 0; i < singles.length; i++) {
+      list.push(singles[i]);
+      if ((i + 1) % step === 0 && currentPairIdx < pairs.length) {
+        list.push(pairs[currentPairIdx][0], pairs[currentPairIdx][1]);
+        currentPairIdx++;
+      }
+    }
+
+    while (currentPairIdx < pairs.length) {
+      list.push(pairs[currentPairIdx][0], pairs[currentPairIdx][1]);
+      currentPairIdx++;
     }
 
     return list;

@@ -30,7 +30,7 @@ class Game {
     this.powerManager = new PowerManager(this.economy, this.progress, this.particles);
 
     const savedMode = localStorage.getItem("gigantomaquia_game_mode") || "NORMAL";
-    this.gameMode = savedMode === "SANDBOX" ? "SANDBOX" : "NORMAL";
+    this.gameMode = savedMode === "CHAOS" ? "CHAOS" : "NORMAL";
 
     this.gameState = "MENU"; // "MENU" | "PLAYING"
     this.towersList = [];
@@ -112,19 +112,14 @@ class Game {
       onResetProgress: () => {
         this.progress.resetProgress();
         this.powerManager.reset();
-        const isSandbox = this.gameMode === "SANDBOX";
-        if (isSandbox && !this.powerManager.equippedPowerId) {
-          this.powerManager.setEquippedPower("DEMETER", true);
-        }
         this.ui.updateStatsModal(this.progress.data);
-        this.ui.updateMenuStats(this.progress.data);
+        this.ui.updateMenuStats(this.progress.data, this.gameMode);
         this.ui.updateContinueButton(null);
-        this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
+        this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig());
         this.ui.updateAltarPowers(
           this.powerManager.equippedPowerId,
-          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-          isSandbox ? 999 : this.progress.getGamesPlayed(),
-          isSandbox
+          this.progress.getUnlockedPowers(),
+          this.progress.getGamesPlayed()
         );
         this.ui.updatePowerHud(
           this.powerManager.getEquippedPowerConfig(),
@@ -141,31 +136,27 @@ class Game {
         this.exitToMenu();
       },
       onOpenCodex: () => {
-        const isSandbox = this.gameMode === "SANDBOX";
         this.ui.openPowersScreen(
           this.powerManager.equippedPowerId,
-          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-          isSandbox ? 999 : this.progress.getGamesPlayed(),
-          isSandbox
+          this.progress.getUnlockedPowers(),
+          this.progress.getGamesPlayed()
         );
       },
       onEquipPower: (powerId) => {
-        const isSandbox = this.gameMode === "SANDBOX";
-        if (!isSandbox && !this.progress.isPowerUnlocked(powerId)) {
+        if (!this.progress.isPowerUnlocked(powerId)) {
           const conf = POWERS_DATA[powerId];
           const remaining = Math.max(1, (conf ? conf.unlockGames : 0) - this.progress.getGamesPlayed());
           this.ui.showAthenaMessage(`🔒 ${conf ? conf.god : powerId} está bloqueado. Requiere ${conf ? conf.unlockGames : 0} partidas jugadas (faltan ${remaining}).`, 3500);
           return;
         }
-        this.powerManager.setEquippedPower(powerId, isSandbox);
+        this.powerManager.setEquippedPower(powerId);
         this.ui.updatePowersScreenCards(
           powerId,
-          isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-          isSandbox ? 999 : this.progress.getGamesPlayed(),
-          isSandbox
+          this.progress.getUnlockedPowers(),
+          this.progress.getGamesPlayed()
         );
         const conf = this.powerManager.getEquippedPowerConfig();
-        this.ui.updateMenuEquippedPower(conf, isSandbox);
+        this.ui.updateMenuEquippedPower(conf);
         this.ui.updatePowerHud(
           conf,
           this.powerManager.cooldownRemaining,
@@ -266,12 +257,9 @@ class Game {
         this.isPaused = false;
         this.ui.closePauseModal();
       },
-      onAddTestGold: (amount) => {
-        if (this.gameMode !== "SANDBOX") return;
-        this.economy.addGold(amount);
-        this.ui.updateHUD(this.economy, this.waveManager);
-        this.ui.showAthenaMessage(`¡Tesoro de prueba! +${amount.toLocaleString()} 🪙 concedidos.`, 2500);
-        this.saveActiveMatchState();
+      onChaosPowerClick: (powerId) => {
+        if (this.gameState === "MENU" || this.isPaused || this.isGameOver) return;
+        this.castChaosPower(powerId);
       },
       onRestartGame: () => {
         if (this.tutorial && this.tutorial.isActive) {
@@ -297,25 +285,19 @@ class Game {
 
     // Sincronizar estado inicial del modo de juego
     this.ui.setGameMode(this.gameMode);
-    const isSandboxInit = this.gameMode === "SANDBOX";
-    if (isSandboxInit) {
-      if (!this.powerManager.equippedPowerId) {
-        this.powerManager.setEquippedPower("DEMETER", true);
-      }
-    } else {
+    if (this.gameMode === "NORMAL") {
       if (!this.progress.isPowerUnlocked(this.powerManager.equippedPowerId)) {
-        this.powerManager.setEquippedPower(null, false);
+        this.powerManager.setEquippedPower(null);
       }
     }
 
     // Mostrar Pantalla de Inicio / Menú Principal en el arranque
-    this.ui.openMainMenu(this.progress.data, this.progress.loadActiveMatch());
-    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandboxInit);
+    this.ui.openMainMenu(this.progress.data, this.gameMode, this.progress.loadActiveMatch());
+    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig());
     this.ui.updateAltarPowers(
       this.powerManager.equippedPowerId,
-      isSandboxInit ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-      isSandboxInit ? 999 : this.progress.getGamesPlayed(),
-      isSandboxInit
+      this.progress.getUnlockedPowers(),
+      this.progress.getGamesPlayed()
     );
     this.ui.updatePowerHud(
       this.powerManager.getEquippedPowerConfig(),
@@ -346,38 +328,29 @@ class Game {
   }
 
   /**
-   * Alterna entre Modo Historia y Modo Pruebas (Sandbox).
+   * Alterna entre Modo Historia y Modo Caos.
    */
   setGameMode(mode) {
-    this.gameMode = mode === "SANDBOX" ? "SANDBOX" : "NORMAL";
+    this.gameMode = mode === "CHAOS" ? "CHAOS" : "NORMAL";
     try {
       localStorage.setItem("gigantomaquia_game_mode", this.gameMode);
     } catch (e) {
       console.warn("No se pudo guardar modo en localStorage:", e);
     }
 
-    const isSandbox = this.gameMode === "SANDBOX";
-
-    if (isSandbox) {
-      // En modo Sandbox, si no hay poder equipado, equipar Deméter
-      if (!this.powerManager.equippedPowerId) {
-        this.powerManager.setEquippedPower("DEMETER", true);
-      }
-    } else {
-      // En modo Historia, si el poder equipado no está desbloqueado legítimamente, desequiparlo
+    if (this.gameMode === "NORMAL") {
       if (!this.progress.isPowerUnlocked(this.powerManager.equippedPowerId)) {
-        this.powerManager.setEquippedPower(null, false);
+        this.powerManager.setEquippedPower(null);
       }
     }
 
     this.ui.setGameMode(this.gameMode);
     const conf = this.powerManager.getEquippedPowerConfig();
-    this.ui.updateMenuEquippedPower(conf, isSandbox);
+    this.ui.updateMenuEquippedPower(conf);
     this.ui.updateAltarPowers(
       this.powerManager.equippedPowerId,
-      isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-      isSandbox ? 999 : this.progress.getGamesPlayed(),
-      isSandbox
+      this.progress.getUnlockedPowers(),
+      this.progress.getGamesPlayed()
     );
     this.ui.updatePowerHud(
       conf,
@@ -389,10 +362,25 @@ class Game {
     );
     this.ui.updateContinueButton(this.progress.loadActiveMatch());
 
-    if (isSandbox) {
-      this.ui.showAthenaMessage("🧪 Modo Pruebas activado: todas las bendiciones y +10,000 🪙 disponibles.", 3000);
+    if (this.gameMode === "CHAOS") {
+      this.ui.showAthenaMessage("🌋 Modo Caos activado: Arcade Extremo con los 5 poderes y Furia Titánica.", 3000);
     } else {
       this.ui.showAthenaMessage("🛡️ Modo Historia activado: progresión por mérito y batallas legítimas.", 3000);
+    }
+  }
+
+  castChaosPower(powerId) {
+    if (this.isPaused || this.isGameOver) return;
+    const res = this.powerManager.startChaosCast(powerId);
+    if (!res.success) {
+      if (res.reason && !res.cancelled) {
+        this.ui.showAthenaMessage(res.reason, 2500);
+      }
+    } else if (res.mode === "GLOBAL") {
+      this.ui.showAthenaMessage(`¡Invocaste ${res.config.name}! "${res.config.quote}"`, 3500);
+      this.saveActiveMatchState();
+    } else {
+      this.ui.showAthenaMessage(`🎯 Apunta en el mapa para desatar ${res.config.name}. [Clic / Tap / ESC para cancelar]`, 3000);
     }
   }
 
@@ -411,9 +399,6 @@ class Game {
     }
     this.restartGame();
 
-    // Asegurar visibilidad correcta del botón de oro según el modo de juego
-    this.ui.showTestGoldButton(this.gameMode === "SANDBOX");
-
     if (isTutorial) {
       this.tutorial.start(this);
     } else {
@@ -421,7 +406,7 @@ class Game {
       this.ui.clearTutorialLocks();
       this.ui.clearSpotlight();
       this.ui.hideAthenaBanner();
-      const modeText = this.gameMode === "SANDBOX" ? " (Modo Pruebas)" : "";
+      const modeText = this.gameMode === "CHAOS" ? " (Modo Caos)" : "";
       this.ui.showAthenaMessage(`¡A la batalla${modeText}! Coloca tus torres olímpicas y llama la primera oleada.`);
       this.saveActiveMatchState();
     }
@@ -461,18 +446,23 @@ class Game {
     this.inspectedTower = null;
 
     // 3. Restaurar Modo de Juego guardado
-    this.gameMode = matchData.gameMode === "SANDBOX" ? "SANDBOX" : "NORMAL";
+    this.gameMode = matchData.gameMode === "CHAOS" ? "CHAOS" : "NORMAL";
+    if (this.gameMode === "CHAOS") {
+      this.waveManager.setChaosMode(true, (wave, type, buff) => this.ui.showTitanicFuryBanner(wave, type, buff));
+      this.powerManager.setChaosMode(true);
+    } else {
+      this.waveManager.setChaosMode(false);
+      this.powerManager.setChaosMode(false);
+    }
     this.ui.setGameMode(this.gameMode);
-    this.ui.showTestGoldButton(this.gameMode === "SANDBOX");
 
     // 4. Restaurar Economía y Oleadas
     this.economy.restore(matchData.economy);
     this.waveManager.restore(matchData.waveManager);
 
     // 5. Restaurar Poder Equipado
-    if (matchData.powerManager && matchData.powerManager.equippedPowerId) {
-      const isSandbox = this.gameMode === "SANDBOX";
-      this.powerManager.setEquippedPower(matchData.powerManager.equippedPowerId, isSandbox);
+    if (this.gameMode === "NORMAL" && matchData.powerManager && matchData.powerManager.equippedPowerId) {
+      this.powerManager.setEquippedPower(matchData.powerManager.equippedPowerId);
     }
 
     // 6. Reconstruir Torres
@@ -496,14 +486,18 @@ class Game {
 
     // 8. Actualizar HUD y controles
     this.ui.updateHUD(this.economy, this.waveManager);
-    this.ui.updatePowerHud(
-      this.powerManager.getEquippedPowerConfig(),
-      this.powerManager.cooldownRemaining,
-      this.economy.gold,
-      this.powerManager.isTargeting,
-      this.waveManager.isWaitingNextWave,
-      this.powerManager.activeEffectRemaining
-    );
+    if (this.gameMode === "CHAOS") {
+      this.ui.updateChaosPowersHud(this.powerManager.getChaosPowersStatus(), this.economy.gold);
+    } else {
+      this.ui.updatePowerHud(
+        this.powerManager.getEquippedPowerConfig(),
+        this.powerManager.cooldownRemaining,
+        this.economy.gold,
+        this.powerManager.isTargeting,
+        this.waveManager.isWaitingNextWave,
+        this.powerManager.activeEffectRemaining
+      );
+    }
 
     const nextWaveNum = this.waveManager.currentWave + 1;
     this.ui.showAthenaMessage(`⚔️ ¡Partida reanudada! Preparado para la Oleada ${nextWaveNum}.`, 3500);
@@ -559,14 +553,12 @@ class Game {
     this.ui.closePauseModal();
     this.restartGame();
     this.ui.setGameMode(this.gameMode);
-    const isSandbox = this.gameMode === "SANDBOX";
-    this.ui.openMainMenu(this.progress.data, this.progress.loadActiveMatch());
-    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
+    this.ui.openMainMenu(this.progress.data, this.gameMode, this.progress.loadActiveMatch());
+    this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig());
     this.ui.updateAltarPowers(
       this.powerManager.equippedPowerId,
-      isSandbox ? ["HERA", "ARTEMISA", "DEMETER", "HERMES", "CRONOS"] : this.progress.getUnlockedPowers(),
-      isSandbox ? 999 : this.progress.getGamesPlayed(),
-      isSandbox
+      this.progress.getUnlockedPowers(),
+      this.progress.getGamesPlayed()
     );
   }
 
@@ -774,10 +766,12 @@ class Game {
       if (this.powerManager && this.powerManager.isTargeting) {
         if (e.button === 0) { // Clic izquierdo: desatar habilidad
           if (isInside) {
+            const conf = this.powerManager.getTargetingPowerConfig();
             const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
             if (executed) {
-              const conf = this.powerManager.getEquippedPowerConfig();
-              this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+              if (conf) {
+                this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+              }
               this.saveActiveMatchState();
             }
           }
@@ -841,9 +835,33 @@ class Game {
     window.addEventListener('keydown', (e) => {
       if (this.gameState === "MENU") return;
 
-      // Tecla [Q] para invocar habilidad divina equipada
+      // En Modo Caos: Teclas [1] a [5] para lanzar cada una de las 5 habilidades divinas
+      if (this.gameMode === "CHAOS" && !this.isPaused && !this.isGameOver) {
+        let chaosIndex = -1;
+        if (e.code === "Digit1" || e.code === "Numpad1") chaosIndex = 0;
+        else if (e.code === "Digit2" || e.code === "Numpad2") chaosIndex = 1;
+        else if (e.code === "Digit3" || e.code === "Numpad3") chaosIndex = 2;
+        else if (e.code === "Digit4" || e.code === "Numpad4") chaosIndex = 3;
+        else if (e.code === "Digit5" || e.code === "Numpad5") chaosIndex = 4;
+
+        if (chaosIndex >= 0) {
+          const powerOrder = BALANCE.CHAOS_POWERS_ORDER || ["DEMETER", "HERMES", "CRONOS", "ARTEMIS", "ZEUS"];
+          const powerId = powerOrder[chaosIndex];
+          if (powerId) {
+            this.castChaosPower(powerId);
+            return;
+          }
+        }
+      }
+
+      // Tecla [Q] para invocar habilidad divina equipada (o primera habilidad en Modo Caos)
       if (e.code === "KeyQ") {
         if (!this.isPaused && !this.isGameOver) {
+          if (this.gameMode === "CHAOS") {
+            const powerOrder = BALANCE.CHAOS_POWERS_ORDER || ["DEMETER", "HERMES", "CRONOS", "ARTEMIS", "ZEUS"];
+            this.castChaosPower(powerOrder[0]);
+            return;
+          }
           if (this.powerManager && this.powerManager.isTargeting) {
             this.powerManager.cancelCast();
             return;
@@ -908,10 +926,12 @@ class Game {
 
     // 1. Lanzamiento de habilidad de zona si todavía estamos en modo apuntado
     if (this.powerManager && this.powerManager.isTargeting) {
+      const conf = this.powerManager.getTargetingPowerConfig();
       const executed = this.powerManager.executeZoneCast(x, y, this.waveManager.activeEnemies, this.towersList);
       if (executed) {
-        const conf = this.powerManager.getEquippedPowerConfig();
-        this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+        if (conf) {
+          this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+        }
         this.saveActiveMatchState();
       }
       return;
@@ -1131,9 +1151,28 @@ class Game {
     this.isGameOver = true;
     this.progress.clearActiveMatch();
     this.ui.updateContinueButton(null);
-    const isSandbox = this.gameMode === "SANDBOX";
+    const isChaos = this.gameMode === "CHAOS";
 
-    if (!isSandbox) {
+    if (isChaos) {
+      // Modo Caos: registrar estadísticas exclusivas de Caos
+      const recordResult = this.progress.recordChaosGameFinished(
+        this.waveManager.currentWave,
+        this.waveManager.totalEnemiesKilled
+      );
+
+      if (this.tutorial && this.tutorial.isActive) {
+        this.tutorial.onGameOver();
+      }
+
+      this.ui.showGameOver(
+        this.waveManager.currentWave,
+        this.economy.totalGoldEarned,
+        this.waveManager.totalEnemiesKilled,
+        recordResult.chaosGamesPlayed,
+        "CHAOS"
+      );
+      this.ui.showAthenaMessage("🔥 ¡Caíste en el Caos! Las hordas titánicas fueron implacables. Reintenta cuando estés listo.", 5000);
+    } else {
       // Modo Historia: registrar progresión legítima y desbloquear poderes
       const recordResult = this.progress.recordGameFinished(
         this.waveManager.currentWave,
@@ -1152,7 +1191,7 @@ class Game {
         this.economy.totalGoldEarned,
         this.waveManager.totalEnemiesKilled,
         totalGames,
-        false
+        "NORMAL"
       );
 
       if (recordResult && recordResult.newlyUnlocked && recordResult.newlyUnlocked.length > 0) {
@@ -1161,29 +1200,25 @@ class Game {
           this.ui.showAthenaMessage(`⚡ ¡HAS DESBLOQUEADO NUEVA(S) BENDICIÓN(ES): ${names}! Ya puedes equiparlas en el Menú Principal.`, 6000);
         }, 600);
       }
-    } else {
-      // Modo Sandbox: mostrar resultados sin alterar las estadísticas de historia
-      if (this.tutorial && this.tutorial.isActive) {
-        this.tutorial.onGameOver();
-      }
-
-      this.ui.showGameOver(
-        this.waveManager.currentWave,
-        this.economy.totalGoldEarned,
-        this.waveManager.totalEnemiesKilled,
-        this.progress.getGamesPlayed(),
-        true
-      );
-      this.ui.showAthenaMessage("🧪 Batalla de pruebas terminada. Tus récords de historia se mantienen intactos.", 4500);
     }
   }
 
   restartGame() {
     this.isPaused = false;
     this.ui.closePauseModal();
-    this.economy.reset();
-    this.waveManager.reset();
-    this.powerManager.reset();
+    if (this.gameMode === "CHAOS") {
+      this.economy.reset(BALANCE.CHAOS.STARTING_GOLD, BALANCE.CHAOS.STARTING_LIVES);
+      this.waveManager.reset();
+      this.waveManager.setChaosMode(true);
+      this.powerManager.reset();
+      this.powerManager.setChaosMode(true);
+    } else {
+      this.economy.reset();
+      this.waveManager.reset();
+      this.waveManager.setChaosMode(false);
+      this.powerManager.reset();
+      this.powerManager.setChaosMode(false);
+    }
     
     // Limpiar torres
     for (const t of this.towersList) {
@@ -1260,14 +1295,21 @@ class Game {
 
     // 7. Actualizar interfaz y HUD de habilidades
     this.ui.updateHUD(this.economy, this.waveManager);
-    this.ui.updatePowerHud(
-      this.powerManager.getEquippedPowerConfig(),
-      this.powerManager.cooldownRemaining,
-      this.economy.gold,
-      this.powerManager.isTargeting,
-      this.waveManager.isWaitingNextWave,
-      this.powerManager.activeEffectRemaining
-    );
+    if (this.gameMode === "CHAOS") {
+      this.ui.updateChaosPowersHud(
+        this.powerManager.getChaosPowersStatus(this.economy.gold, this.waveManager.isWaitingNextWave),
+        this.economy.gold
+      );
+    } else {
+      this.ui.updatePowerHud(
+        this.powerManager.getEquippedPowerConfig(),
+        this.powerManager.cooldownRemaining,
+        this.economy.gold,
+        this.powerManager.isTargeting,
+        this.waveManager.isWaitingNextWave,
+        this.powerManager.activeEffectRemaining
+      );
+    }
   }
 
   render() {
@@ -1323,7 +1365,10 @@ class Game {
 
     // 8. Retícula de apuntado de Habilidad Divina (para poderes de zona)
     if (this.powerManager && this.powerManager.isTargeting) {
-      this.renderer.renderPowerTargeting(this.powerManager.mouseWorldPos, this.powerManager.getEquippedPowerConfig());
+      const targetingConfig = this.powerManager.getTargetingPowerConfig();
+      if (targetingConfig) {
+        this.renderer.renderPowerTargeting(this.powerManager.mouseWorldPos, targetingConfig);
+      }
     }
   }
 }

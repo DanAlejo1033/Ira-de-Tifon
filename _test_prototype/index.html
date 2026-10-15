@@ -24,7 +24,6 @@
           <span class="icon">🪙</span>
           <span id="gold-display" class="stat-value">250</span>
         </div>
-        <button id="test-gold-btn" class="hud-btn test-gold-btn hidden-mode" title="Añadir 10,000 Oro para pruebas de balance">+10,000 🪙</button>
         <div class="stat-badge lives-badge" title="Vidas del Monte Olimpo">
           <span class="icon">🏛️</span>
           <span id="lives-display" class="stat-value">20</span>
@@ -75,7 +74,13 @@
     <main id="canvas-wrapper">
       <canvas id="game-canvas" width="1024" height="640"></canvas>
 
-      <!-- Botón de Habilidad Divina flotante (reubicado) -->
+      <!-- Banner de Furia Titánica (Modo Caos) -->
+      <div id="titanic-fury-banner" class="titanic-fury-banner hidden">
+        <span class="fury-banner-icon">🌋</span>
+        <span id="titanic-fury-text" class="fury-banner-text">¡FURIA TITÁNICA DESATADA!</span>
+      </div>
+
+      <!-- Botón de Habilidad Divina flotante (Modo Historia) y Barra de los 5 Poderes (Modo Caos) -->
       <div id="power-hud-container" class="power-hud-floating">
         <button id="btn-cast-power" class="power-hud-card" title="Invocar Habilidad Divina [Q / Clic]">
           <div class="power-hud-icon" id="hud-power-icon">🌿</div>
@@ -87,6 +92,74 @@
             <span id="hud-cooldown-text">70s</span>
           </div>
         </button>
+
+        <!-- Barra de los 5 Poderes del Panteón (Modo Caos) -->
+        <div id="chaos-powers-bar" class="chaos-powers-bar hidden" title="Panteón Olímpico (Teclas [1] a [5] o Clic)">
+          <!-- Deméter [1] -->
+          <button class="chaos-power-card" data-power="DEMETER" title="Deméter: Zarzas y Aturdimiento [Tecla 1]">
+            <span class="chaos-hotkey-badge">1</span>
+            <div class="chaos-power-icon">🌿</div>
+            <div class="chaos-power-info">
+              <span class="chaos-power-name">Deméter</span>
+              <span class="chaos-power-cost">🪙 100</span>
+            </div>
+            <div class="chaos-cooldown-overlay hidden" id="chaos-cd-DEMETER">
+              <span class="chaos-cd-text">70s</span>
+            </div>
+          </button>
+
+          <!-- Hera [2] -->
+          <button class="chaos-power-card" data-power="HERA" title="Hera: 60% Daño Máximo en Área [Tecla 2]">
+            <span class="chaos-hotkey-badge">2</span>
+            <div class="chaos-power-icon">🦚</div>
+            <div class="chaos-power-info">
+              <span class="chaos-power-name">Hera</span>
+              <span class="chaos-power-cost">🪙 100</span>
+            </div>
+            <div class="chaos-cooldown-overlay hidden" id="chaos-cd-HERA">
+              <span class="chaos-cd-text">70s</span>
+            </div>
+          </button>
+
+          <!-- Hércules [3] -->
+          <button class="chaos-power-card" data-power="ARTEMISA" title="Hércules: Vulnerabilidad +20% Daño [Tecla 3]">
+            <span class="chaos-hotkey-badge">3</span>
+            <div class="chaos-power-icon">🦁</div>
+            <div class="chaos-power-info">
+              <span class="chaos-power-name">Hércules</span>
+              <span class="chaos-power-cost">🪙 100</span>
+            </div>
+            <div class="chaos-cooldown-overlay hidden" id="chaos-cd-ARTEMISA">
+              <span class="chaos-cd-text">70s</span>
+            </div>
+          </button>
+
+          <!-- Hermes [4] -->
+          <button class="chaos-power-card" data-power="HERMES" title="Hermes: +50% Oro Global durante 6s [Tecla 4]">
+            <span class="chaos-hotkey-badge">4</span>
+            <div class="chaos-power-icon">🪽</div>
+            <div class="chaos-power-info">
+              <span class="chaos-power-name">Hermes</span>
+              <span class="chaos-power-cost">🪙 120</span>
+            </div>
+            <div class="chaos-cooldown-overlay hidden" id="chaos-cd-HERMES">
+              <span class="chaos-cd-text">70s</span>
+            </div>
+          </button>
+
+          <!-- Cronos [5] -->
+          <button class="chaos-power-card" data-power="CRONOS" title="Cronos: +50% Cadencia Global durante 6s [Tecla 5]">
+            <span class="chaos-hotkey-badge">5</span>
+            <div class="chaos-power-icon">⏳</div>
+            <div class="chaos-power-info">
+              <span class="chaos-power-name">Cronos</span>
+              <span class="chaos-power-cost">🪙 110</span>
+            </div>
+            <div class="chaos-cooldown-overlay hidden" id="chaos-cd-CRONOS">
+              <span class="chaos-cd-text">70s</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- Floating Tower Inspector / Upgrade Window (Beside the tower) -->
@@ -253,16 +326,16 @@
           <p class="menu-subtitle">DEFENSA DEL MONTE OLIMPO</p>
         </div>
 
-        <!-- Selector de Modo de Juego (Historia vs Pruebas) -->
+        <!-- Selector de Modo de Juego (Historia vs Caos) -->
         <div class="menu-mode-section">
           <div class="menu-mode-selector" role="tablist" aria-label="Selector de Modo de Juego">
             <button id="mode-story-btn" class="menu-mode-tab active" data-mode="NORMAL" title="Modo Historia: Progresión por mérito, bendiciones divinas por desbloqueo y juego legítimo">
               <span class="mode-tab-icon">🛡️</span>
               <span class="mode-tab-text">MODO HISTORIA</span>
             </button>
-            <button id="mode-sandbox-btn" class="menu-mode-tab" data-mode="SANDBOX" title="Modo Pruebas / Sandbox: Todas las bendiciones y botón de oro (+10,000) disponibles">
-              <span class="mode-tab-icon">🧪</span>
-              <span class="mode-tab-text">MODO PRUEBAS</span>
+            <button id="mode-chaos-btn" class="menu-mode-tab" data-mode="CHAOS" title="Modo Caos: Desafío arcade extremo, Furia Titánica cada 3 oleadas y los 5 poderes del Panteón activos">
+              <span class="mode-tab-icon">🌋</span>
+              <span class="mode-tab-text">MODO CAOS</span>
             </button>
           </div>
           <p id="menu-mode-desc" class="menu-mode-desc">Progresión legítima · Desbloqueo de bendiciones divinas</p>
@@ -497,7 +570,7 @@
             <span id="st-games-count" class="value">0</span>
           </div>
           <div class="stat-box">
-            <span class="label">Oleada Récord</span>
+            <span class="label">Oleada Récord (Historia)</span>
             <span id="st-highest-wave" class="value">0</span>
           </div>
           <div class="stat-box">
@@ -507,6 +580,25 @@
           <div class="stat-box">
             <span class="label">Tutorial de Atenea</span>
             <span id="st-tutorial-status" class="value highlight-val">Pendiente</span>
+          </div>
+        </div>
+
+        <!-- Récords de Modo Caos -->
+        <div class="chaos-stats-banner">
+          <div class="chaos-stats-title">🌋 Récords del Modo Caos</div>
+          <div class="stats-overview-grid chaos-stats-grid">
+            <div class="stat-box chaos-stat-box">
+              <span class="label">Partidas en Caos</span>
+              <span id="st-chaos-games" class="value">0</span>
+            </div>
+            <div class="stat-box chaos-stat-box">
+              <span class="label">Oleada Récord Caos</span>
+              <span id="st-chaos-wave" class="value highlight-val" style="color: #f97316;">0</span>
+            </div>
+            <div class="stat-box chaos-stat-box">
+              <span class="label">Bajas en Caos</span>
+              <span id="st-chaos-kills" class="value">0</span>
+            </div>
           </div>
         </div>
         <div class="powers-unlock-box">

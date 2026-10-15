@@ -41,7 +41,7 @@ export const ENEMIES = {
     type: "ALOADAE",
     name: "Alóada (Oto y Efialtes)",
     description: "Marchan en pareja. Cuando uno cae, el otro entra en cólera (+80% velocidad).",
-    hp: 180,
+    hp: 110,
     speed: 65,
     frenzySpeedMultiplier: 1.85,
     goldReward: 5,
