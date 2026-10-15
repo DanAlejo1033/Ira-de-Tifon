@@ -74,8 +74,21 @@ class Game {
       onSelectGameMode: (mode) => {
         this.setGameMode(mode);
       },
+      onContinueGame: () => {
+        this.continueGame();
+      },
       onStartGame: () => {
         this.ui.setMenuGuidedPlay(false);
+        if (this.progress.hasActiveMatch()) {
+          const match = this.progress.loadActiveMatch();
+          const wave = match && match.waveManager ? (match.waveManager.currentWave || 1) : 1;
+          const confirmNew = confirm(`Tienes una partida guardada en curso (Oleada ${wave}). ¿Deseas iniciar una NUEVA partida y descartar la guardada?`);
+          if (!confirmNew) {
+            return;
+          }
+          this.progress.clearActiveMatch();
+          this.ui.updateContinueButton(null);
+        }
         // Si es la primera vez que juega en modo historia y no ha completado el tutorial, Atenea lo guía
         if (this.gameMode === "NORMAL" && this.progress.getGamesPlayed() === 0 && !this.progress.isTutorialCompleted()) {
           this.startBattle(true);
@@ -105,6 +118,7 @@ class Game {
         }
         this.ui.updateStatsModal(this.progress.data);
         this.ui.updateMenuStats(this.progress.data);
+        this.ui.updateContinueButton(null);
         this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
         this.ui.updateAltarPowers(
           this.powerManager.equippedPowerId,
@@ -174,6 +188,7 @@ class Game {
         } else if (res.mode === "GLOBAL") {
           const conf = this.powerManager.getEquippedPowerConfig();
           this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3500);
+          this.saveActiveMatchState();
         } else {
           const conf = this.powerManager.getEquippedPowerConfig();
           this.ui.showAthenaMessage(`Apunta y haz clic en el mapa para invocar ${conf.name}. [ESC para cancelar]`, 3000);
@@ -207,6 +222,7 @@ class Game {
           if (this.tutorial && this.tutorial.isActive) {
             this.tutorial.onWaveStarted(this.waveManager.currentWave);
           }
+          this.saveActiveMatchState();
         }
       },
       onUpgradeTower: (tower) => {
@@ -255,6 +271,7 @@ class Game {
         this.economy.addGold(amount);
         this.ui.updateHUD(this.economy, this.waveManager);
         this.ui.showAthenaMessage(`¡Tesoro de prueba! +${amount.toLocaleString()} 🪙 concedidos.`, 2500);
+        this.saveActiveMatchState();
       },
       onRestartGame: () => {
         if (this.tutorial && this.tutorial.isActive) {
@@ -262,6 +279,9 @@ class Game {
         } else {
           this.startBattle(false);
         }
+      },
+      onExitMenu: () => {
+        this.exitToMenu();
       }
     });
 
@@ -269,6 +289,11 @@ class Game {
     this.tutorial = new TutorialManager(this.ui, this.progress);
 
     this.initCanvasInput();
+
+    // Auto-guardado de seguridad al recargar o cerrar pestaña
+    window.addEventListener('beforeunload', () => {
+      this.saveActiveMatchState();
+    });
 
     // Sincronizar estado inicial del modo de juego
     this.ui.setGameMode(this.gameMode);
@@ -284,7 +309,7 @@ class Game {
     }
 
     // Mostrar Pantalla de Inicio / Menú Principal en el arranque
-    this.ui.openMainMenu(this.progress.data);
+    this.ui.openMainMenu(this.progress.data, this.progress.loadActiveMatch());
     this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandboxInit);
     this.ui.updateAltarPowers(
       this.powerManager.equippedPowerId,
@@ -362,6 +387,7 @@ class Game {
       this.waveManager.isWaitingNextWave,
       this.powerManager.activeEffectRemaining
     );
+    this.ui.updateContinueButton(this.progress.loadActiveMatch());
 
     if (isSandbox) {
       this.ui.showAthenaMessage("🧪 Modo Pruebas activado: todas las bendiciones y +10,000 🪙 disponibles.", 3000);
@@ -379,6 +405,10 @@ class Game {
     this.ui.closeLore();
     this.ui.closePowersScreen(false);
     this.ui.setMenuGuidedPlay(false);
+
+    if (!isTutorial) {
+      this.progress.clearActiveMatch();
+    }
     this.restartGame();
 
     // Asegurar visibilidad correcta del botón de oro según el modo de juego
@@ -393,13 +423,129 @@ class Game {
       this.ui.hideAthenaBanner();
       const modeText = this.gameMode === "SANDBOX" ? " (Modo Pruebas)" : "";
       this.ui.showAthenaMessage(`¡A la batalla${modeText}! Coloca tus torres olímpicas y llama la primera oleada.`);
+      this.saveActiveMatchState();
     }
+  }
+
+  /**
+   * Reanuda la partida guardada restaurando la economía, oleada, poderes y todas las torres.
+   */
+  continueGame() {
+    const matchData = this.progress.loadActiveMatch();
+    if (!matchData) {
+      this.ui.showAthenaMessage("No hay ninguna partida guardada disponible.", 3000);
+      return;
+    }
+
+    this.gameState = "PLAYING";
+    this.ui.closeMainMenu();
+    this.ui.closeLore();
+    this.ui.closePowersScreen(false);
+    this.ui.setMenuGuidedPlay(false);
+
+    // 1. Limpiar estado visual e interactivo previo
+    this.isPaused = false;
+    this.isGameOver = false;
+    this.ui.closePauseModal();
+    this.ui.clearTowerSelection();
+    this.ui.closeInspector();
+
+    // 2. Limpiar torres y proyectiles previos
+    for (const t of this.towersList) {
+      this.grid.removeTowerAt(t.col, t.row);
+    }
+    this.towersList = [];
+    this.projectilesList = [];
+    this.roadBombsList = [];
+    this.selectedTowerType = null;
+    this.inspectedTower = null;
+
+    // 3. Restaurar Modo de Juego guardado
+    this.gameMode = matchData.gameMode === "SANDBOX" ? "SANDBOX" : "NORMAL";
+    this.ui.setGameMode(this.gameMode);
+    this.ui.showTestGoldButton(this.gameMode === "SANDBOX");
+
+    // 4. Restaurar Economía y Oleadas
+    this.economy.restore(matchData.economy);
+    this.waveManager.restore(matchData.waveManager);
+
+    // 5. Restaurar Poder Equipado
+    if (matchData.powerManager && matchData.powerManager.equippedPowerId) {
+      const isSandbox = this.gameMode === "SANDBOX";
+      this.powerManager.setEquippedPower(matchData.powerManager.equippedPowerId, isSandbox);
+    }
+
+    // 6. Reconstruir Torres
+    if (Array.isArray(matchData.towers)) {
+      for (const tData of matchData.towers) {
+        const tower = Tower.deserialize(tData, this.grid);
+        if (tower) {
+          this.grid.setTowerAt(tower.col, tower.row, tower);
+          this.towersList.push(tower);
+        }
+      }
+    }
+
+    // 7. Desactivar tutorial
+    if (this.tutorial) {
+      this.tutorial.isActive = false;
+    }
+    this.ui.clearTutorialLocks();
+    this.ui.clearSpotlight();
+    this.ui.hideAthenaBanner();
+
+    // 8. Actualizar HUD y controles
+    this.ui.updateHUD(this.economy, this.waveManager);
+    this.ui.updatePowerHud(
+      this.powerManager.getEquippedPowerConfig(),
+      this.powerManager.cooldownRemaining,
+      this.economy.gold,
+      this.powerManager.isTargeting,
+      this.waveManager.isWaitingNextWave,
+      this.powerManager.activeEffectRemaining
+    );
+
+    const nextWaveNum = this.waveManager.currentWave + 1;
+    this.ui.showAthenaMessage(`⚔️ ¡Partida reanudada! Preparado para la Oleada ${nextWaveNum}.`, 3500);
+
+    // Guardar el estado restaurado
+    this.saveActiveMatchState();
+  }
+
+  /**
+   * Guarda de forma atómica el estado actual de la partida en curso.
+   */
+  saveActiveMatchState() {
+    if (this.gameState !== "PLAYING" || this.isGameOver || this.economy.lives <= 0) {
+      return;
+    }
+    // No guardar durante el tutorial guiado
+    if (this.tutorial && this.tutorial.isActive) {
+      return;
+    }
+
+    const matchData = {
+      version: 1,
+      timestamp: Date.now(),
+      gameMode: this.gameMode,
+      economy: this.economy.serialize(),
+      waveManager: this.waveManager.serialize(),
+      powerManager: {
+        equippedPowerId: this.powerManager.equippedPowerId
+      },
+      towers: this.towersList.map(t => t.serialize())
+    };
+
+    this.progress.saveActiveMatch(matchData);
   }
 
   /**
    * Sale limpiamente al Menú Principal.
    */
   exitToMenu() {
+    if (this.gameState === "PLAYING" && !this.isGameOver && this.economy.lives > 0) {
+      this.saveActiveMatchState();
+    }
     this.gameState = "MENU";
     this.isPaused = false;
     this.isGameOver = false;
@@ -414,7 +560,7 @@ class Game {
     this.restartGame();
     this.ui.setGameMode(this.gameMode);
     const isSandbox = this.gameMode === "SANDBOX";
-    this.ui.openMainMenu(this.progress.data);
+    this.ui.openMainMenu(this.progress.data, this.progress.loadActiveMatch());
     this.ui.updateMenuEquippedPower(this.powerManager.getEquippedPowerConfig(), isSandbox);
     this.ui.updateAltarPowers(
       this.powerManager.equippedPowerId,
@@ -632,6 +778,7 @@ class Game {
             if (executed) {
               const conf = this.powerManager.getEquippedPowerConfig();
               this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+              this.saveActiveMatchState();
             }
           }
           e.preventDefault();
@@ -765,6 +912,7 @@ class Game {
       if (executed) {
         const conf = this.powerManager.getEquippedPowerConfig();
         this.ui.showAthenaMessage(`¡Invocaste ${conf.name}! "${conf.quote}"`, 3000);
+        this.saveActiveMatchState();
       }
       return;
     }
@@ -870,6 +1018,7 @@ class Game {
     if (this.tutorial && this.tutorial.isActive) {
       this.tutorial.onTowerBuilt(tower);
     }
+    this.saveActiveMatchState();
     return true;
   }
 
@@ -883,6 +1032,7 @@ class Game {
       if (this.tutorial && this.tutorial.isActive) {
         this.tutorial.onTowerUpgraded(tower);
       }
+      this.saveActiveMatchState();
     }
   }
 
@@ -897,6 +1047,7 @@ class Game {
       if (this.tutorial && this.tutorial.isActive) {
         this.tutorial.onTowerEvolved(tower);
       }
+      this.saveActiveMatchState();
     }
   }
 
@@ -918,6 +1069,7 @@ class Game {
 
     this.inspectedTower = null;
     this.ui.closeInspector();
+    this.saveActiveMatchState();
   }
 
   onEarlyCallBonus(bonus) {
@@ -925,6 +1077,7 @@ class Game {
       this.economy.addGold(bonus);
       const entrancePixel = this.grid.gridToPixelCenter(this.grid.entranceCell.col, this.grid.entranceCell.row);
       this.particles.addFloatingText(entrancePixel, `+${Math.round(bonus)} Dracmas (¡Adelanto!)`, "#ffd166", true);
+      this.saveActiveMatchState();
     }
   }
 
@@ -940,6 +1093,7 @@ class Game {
       const centerPos = new Vector2(this.canvas.width / 2, 80);
       this.particles.addFloatingText(centerPos, `¡Oleada ${wave} terminada! (${leakedCount} se filtraron)`, "#94a3b8");
     }
+    this.saveActiveMatchState();
   }
 
   onEnemyReachesExit(enemy) {
@@ -952,6 +1106,8 @@ class Game {
 
     if (isDefeated && !this.isGameOver) {
       this.handleGameOver();
+    } else if (!isDefeated) {
+      this.saveActiveMatchState();
     }
   }
 
@@ -973,6 +1129,8 @@ class Game {
 
   handleGameOver() {
     this.isGameOver = true;
+    this.progress.clearActiveMatch();
+    this.ui.updateContinueButton(null);
     const isSandbox = this.gameMode === "SANDBOX";
 
     if (!isSandbox) {

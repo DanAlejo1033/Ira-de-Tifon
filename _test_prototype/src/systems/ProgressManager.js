@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY = "gigantomaquia_progress_v1";
+const ACTIVE_MATCH_KEY = "gigantomaquia_active_match_v1";
 
 export class ProgressManager {
   constructor() {
@@ -123,6 +124,7 @@ export class ProgressManager {
       equippedPower: null
     };
     this.saveProgress();
+    this.clearActiveMatch();
   }
 
   getGamesPlayed() {
@@ -152,6 +154,45 @@ export class ProgressManager {
     if (powerId === null || this.isPowerUnlocked(powerId, isSandbox)) {
       this.data.equippedPower = powerId;
       this.saveProgress();
+    }
+  }
+
+  // ==================== PARTIDA ACTIVA EN CURSO ====================
+  saveActiveMatch(matchData) {
+    try {
+      localStorage.setItem(ACTIVE_MATCH_KEY, JSON.stringify(matchData));
+    } catch (e) {
+      console.warn("Error guardando partida activa en localStorage:", e);
+    }
+  }
+
+  loadActiveMatch() {
+    try {
+      const raw = localStorage.getItem(ACTIVE_MATCH_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (data && data.version && data.economy && data.waveManager && Array.isArray(data.towers)) {
+        if (data.economy.lives <= 0) {
+          this.clearActiveMatch();
+          return null;
+        }
+        return data;
+      }
+    } catch (e) {
+      console.warn("Error cargando partida activa:", e);
+    }
+    return null;
+  }
+
+  hasActiveMatch() {
+    return this.loadActiveMatch() !== null;
+  }
+
+  clearActiveMatch() {
+    try {
+      localStorage.removeItem(ACTIVE_MATCH_KEY);
+    } catch (e) {
+      console.warn("Error limpiando partida activa en localStorage:", e);
     }
   }
 }

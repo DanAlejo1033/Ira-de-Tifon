@@ -292,6 +292,17 @@
         <!-- Puntero indicador tras el prólogo -->
         <div id="menu-play-pointer" class="menu-play-pointer hidden">👇 ¡Haz clic en JUGAR para defender el Olimpo!</div>
 
+        <!-- Botón de Continuar Partida Guardada (visible si hay partida en curso) -->
+        <div id="menu-continue-container" class="menu-continue-container hidden">
+          <button id="menu-continue-btn" class="menu-action-btn continue-action" title="Reanudar la partida guardada">
+            <span class="menu-btn-icon">▶️</span>
+            <div class="menu-btn-text">
+              <span class="menu-btn-title">CONTINUAR PARTIDA</span>
+              <span id="menu-continue-details" class="menu-btn-desc">Oleada 1 · 🪙 1,250 · 🏛️ 20 vidas</span>
+            </div>
+          </button>
+        </div>
+
         <!-- 3. Botones debajo del mapa: Habilidades (izq) y Jugar (der) -->
         <div class="menu-primary-actions-row">
           <button id="menu-codex-btn" class="menu-action-btn skill-action" title="Seleccionar la bendición de un dios olímpico para la batalla">

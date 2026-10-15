@@ -308,4 +308,26 @@ export class WaveManager {
       }
     }
   }
+
+  serialize() {
+    return {
+      currentWave: this.currentWave,
+      totalEnemiesKilled: this.totalEnemiesKilled,
+      isWaveActive: this.isWaveActive
+    };
+  }
+
+  restore(data) {
+    if (!data) return;
+    this.reset();
+    // Si la partida se guardó mientras una oleada estaba en marcha,
+    // restauramos al inicio de esa oleada para que el jugador pueda disputarla limpiamente.
+    if (data.isWaveActive && data.currentWave > 0) {
+      this.currentWave = Math.max(0, data.currentWave - 1);
+    } else {
+      this.currentWave = data.currentWave || 0;
+    }
+    this.totalEnemiesKilled = data.totalEnemiesKilled || 0;
+    this.isWaveActive = false;
+  }
 }

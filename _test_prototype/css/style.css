@@ -198,6 +198,7 @@ html, body {
   height: 100%;
   object-fit: contain;
   touch-action: none;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent !important;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
   -webkit-touch-callout: none !important;
@@ -329,11 +330,16 @@ html, body {
   z-index: 10;
 }
 
-/* ==================== POWER HUD SLOT (HABILIDAD DIVINA) ==================== */
+/* ==================== POWER HUD SLOT (HABILIDAD DIVINA FLOTANTE) ==================== */
+.power-hud-floating,
 .power-hud-container {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 25;
   display: flex;
   align-items: center;
-  gap: 12px;
+  pointer-events: auto;
 }
 
 .power-hud-card {
@@ -341,17 +347,18 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(21, 128, 61, 0.3) 0%, rgba(15, 23, 42, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(21, 128, 61, 0.4) 0%, rgba(15, 23, 42, 0.96) 100%);
   border: 1.5px solid #22c55e;
-  border-radius: 6px;
-  padding: 3px 8px;
-  min-width: 82px;
+  border-radius: 8px;
+  padding: 4px 10px;
+  min-width: 84px;
   height: 54px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.75), 0 0 10px rgba(34, 197, 94, 0.3);
+  backdrop-filter: blur(6px);
   user-select: none;
 }
 
@@ -610,6 +617,28 @@ html, body {
   margin-top: 1px;
 }
 
+.wave-btn:disabled,
+.wave-btn.cooldown {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+  border-color: #4b5563 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.4);
+  pointer-events: none;
+}
+
+.wave-btn:disabled .wave-btn-title,
+.wave-btn.cooldown .wave-btn-title {
+  color: #d1d5db;
+}
+
+.wave-btn:disabled .wave-btn-bonus,
+.wave-btn.cooldown .wave-btn-bonus {
+  color: #9ca3af !important;
+}
+
 /* Inspector Panel (Floating beside selected tower on canvas) */
 .inspector-panel {
   position: absolute !important;
@@ -626,6 +655,9 @@ html, body {
   backdrop-filter: blur(6px);
   width: 236px;
   animation: popInInspector 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @keyframes popInInspector {
@@ -660,6 +692,7 @@ html, body {
   cursor: pointer;
   font-size: 13px;
   padding: 2px 4px;
+  touch-action: manipulation;
 }
 
 .close-btn:hover {
@@ -704,6 +737,18 @@ html, body {
   justify-content: center;
   align-items: center;
   text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.inspect-btn * {
+  pointer-events: none;
+}
+
+.inspect-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(1.15);
 }
 
 .upgrade-btn {
@@ -943,7 +988,7 @@ html, body {
   border: 2px solid var(--gold-primary);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.95), 0 0 32px rgba(245, 179, 53, 0.35);
   border-radius: 14px;
-  padding: 22px 24px 18px 24px;
+  padding: 14px 20px 12px 20px;
   width: 450px;
   max-width: 94vw;
   max-height: 94vh;
@@ -952,7 +997,7 @@ html, body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* 1. Nombre (Cabecera provisional estilizada) */
@@ -1078,12 +1123,12 @@ html, body {
   background: linear-gradient(180deg, #141c2a 0%, #0a0e17 100%);
   border: 2px solid #334155;
   border-radius: 11px;
-  padding: 18px 12px 12px 12px;
+  padding: 14px 10px 10px 10px;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 5px;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
@@ -1130,7 +1175,7 @@ html, body {
 #menu-map-preview {
   width: 100%;
   height: auto;
-  max-height: 195px;
+  max-height: 155px;
   aspect-ratio: 16 / 10;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -1200,7 +1245,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1.5px solid #334155;
   background: rgba(30, 41, 59, 0.8);
@@ -1277,6 +1322,50 @@ html, body {
 
 .menu-action-btn.play-action .menu-btn-desc {
   color: #fef08a;
+}
+
+/* Botón Continuar Partida (Reanudar sesión activa en curso) */
+.menu-continue-container {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.menu-action-btn.continue-action {
+  width: 100%;
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #047857 100%);
+  border: 2px solid #6ee7b7;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: continuePulse 2.5s infinite ease-in-out;
+}
+
+.menu-action-btn.continue-action:hover {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%);
+  border-color: #ffffff;
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.menu-action-btn.continue-action .menu-btn-title {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.menu-action-btn.continue-action .menu-btn-desc {
+  color: #d1fae5;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+@keyframes continuePulse {
+  0%, 100% {
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.75);
+  }
 }
 
 /* 4. Barra Inferior Organizada */
@@ -2108,7 +2197,10 @@ button.tutorial-locked {
   .section-title {
     display: none; /* Ahorra 70px de espacio horizontal en móvil */
   }
-  .power-hud-container {
+  .power-hud-container,
+  .power-hud-floating {
+    bottom: 8px;
+    left: 8px;
     gap: 4px;
   }
   .power-hud-card {

@@ -77,6 +77,9 @@ export class UIManager {
 
     // Modal Menú Principal (Etapa 6)
     this.mainMenuModal = document.getElementById("main-menu-modal");
+    this.menuContinueContainer = document.getElementById("menu-continue-container");
+    this.menuContinueBtn = document.getElementById("menu-continue-btn");
+    this.menuContinueDetails = document.getElementById("menu-continue-details");
     this.menuPlayBtn = document.getElementById("menu-play-btn");
     this.menuTutorialBtn = document.getElementById("menu-tutorial-btn");
     this.menuLoreBtn = document.getElementById("menu-lore-btn");
@@ -361,6 +364,14 @@ export class UIManager {
       this.modeSandboxBtn.addEventListener("click", () => {
         if (this.handlers.onSelectGameMode) {
           this.handlers.onSelectGameMode("SANDBOX");
+        }
+      });
+    }
+
+    if (this.menuContinueBtn) {
+      this.menuContinueBtn.addEventListener("click", () => {
+        if (this.handlers.onContinueGame) {
+          this.handlers.onContinueGame();
         }
       });
     }
@@ -861,8 +872,27 @@ export class UIManager {
     }
   }
 
-  openMainMenu(progressData) {
+  updateContinueButton(activeMatch) {
+    if (!this.menuContinueContainer) return;
+    if (activeMatch && activeMatch.economy && activeMatch.economy.lives > 0) {
+      this.menuContinueContainer.classList.remove("hidden");
+      const wave = activeMatch.waveManager ? activeMatch.waveManager.currentWave : 1;
+      const gold = activeMatch.economy ? Math.floor(activeMatch.economy.gold) : 0;
+      const lives = activeMatch.economy ? activeMatch.economy.lives : 20;
+      const isWaveActive = Boolean(activeMatch.waveManager && activeMatch.waveManager.isWaveActive);
+      const modeTag = activeMatch.gameMode === "SANDBOX" ? "[Pruebas] " : "";
+      const waveText = wave === 0 ? "Oleada 1 (Prep.)" : (isWaveActive ? `Oleada ${wave} (En combate)` : `Oleada ${wave} lista`);
+      if (this.menuContinueDetails) {
+        this.menuContinueDetails.textContent = `${modeTag}${waveText} · 🪙 ${gold.toLocaleString()} · 🏛️ ${lives} vidas`;
+      }
+    } else {
+      this.menuContinueContainer.classList.add("hidden");
+    }
+  }
+
+  openMainMenu(progressData, activeMatch = null) {
     this.updateMenuStats(progressData);
+    this.updateContinueButton(activeMatch);
     this.mainMenuModal.classList.remove("hidden");
     if (this.handlers.onRenderMenuMap) {
       this.handlers.onRenderMenuMap();

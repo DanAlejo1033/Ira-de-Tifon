@@ -46,4 +46,19 @@ export class EconomyManager {
   isGameOver() {
     return this.lives <= 0;
   }
+
+  serialize() {
+    return {
+      gold: this.gold,
+      lives: this.lives,
+      totalGoldEarned: this.totalGoldEarned
+    };
+  }
+
+  restore(data) {
+    if (!data) return;
+    if (typeof data.gold === 'number') this.gold = data.gold;
+    if (typeof data.lives === 'number') this.lives = data.lives;
+    if (typeof data.totalGoldEarned === 'number') this.totalGoldEarned = data.totalGoldEarned;
+  }
 }

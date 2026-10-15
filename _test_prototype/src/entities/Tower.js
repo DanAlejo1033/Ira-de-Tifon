@@ -7,6 +7,7 @@ import { Vector2 } from '../core/Vector2.js';
 import { Projectile } from './Projectile.js';
 import { RoadBomb } from './RoadBomb.js';
 import { BALANCE, getTowerDamage } from '../config/balance.js';
+import { TOWERS } from '../config/towersData.js';
 
 let towerIdCounter = 1;
 
@@ -329,6 +330,94 @@ export class Tower {
     }
 
     return true;
+  }
+
+  serialize() {
+    return {
+      type: this.type,
+      col: this.col,
+      row: this.row,
+      form: this.form,
+      level: this.level,
+      totalInvested: this.totalInvested,
+      aresBranch: this.aresBranch || null
+    };
+  }
+
+  static deserialize(data, grid, towersConfig = TOWERS) {
+    const config = towersConfig[data.type];
+    if (!config) return null;
+
+    const pixelCenter = grid.gridToPixelCenter(data.col, data.row);
+    const tower = new Tower(config, data.col, data.row, pixelCenter);
+
+    tower.form = data.form || 1;
+    tower.level = data.level || 1;
+    tower.totalInvested = (data.totalInvested !== undefined) ? data.totalInvested : config.cost;
+    tower.aresBranch = data.aresBranch || null;
+
+    // Ajustes por dios y forma según evoluciones
+    tower.range = tower.baseRange;
+    if (tower.type === "HERCULES" || tower.type === "ARTEMISA") {
+      if (tower.form === 2) tower.fireRate = 1.9;
+      else if (tower.form === 3) tower.fireRate = 2.8;
+    } else if (tower.type === "ZEUS") {
+      tower.chainRange = tower.baseRange;
+      if (tower.form === 1) tower.chainCount = 1;
+      else if (tower.form === 2) tower.chainCount = 6;
+      else if (tower.form === 3) tower.chainCount = 9;
+    } else if (tower.type === "ARES") {
+      if (tower.form === 2) {
+        if (tower.aresBranch === "MINES") {
+          tower.splashRadius = 75;
+          tower.maxRoadBombs = 6;
+        } else {
+          tower.aresBranch = "SHRAPNEL";
+          tower.splashRadius = 80;
+          tower.shrapnelCount = 6;
+        }
+      } else if (tower.form === 3) {
+        if (tower.aresBranch === "MINES") {
+          tower.splashRadius = 90;
+          tower.maxRoadBombs = 7;
+        } else {
+          tower.aresBranch = "SHRAPNEL";
+          tower.splashRadius = 95;
+          tower.shrapnelCount = 10;
+        }
+      }
+    } else if (tower.type === "HADES") {
+      if (tower.form === 2) tower.rampTime = 2.5;
+      else if (tower.form === 3) tower.rampTime = 1.3;
+    } else if (tower.type === "POSEIDON") {
+      if (tower.form === 2) {
+        tower.splashRadius = 30;
+        tower.slowFactor = 0.5;
+        tower.slowDuration = 1.5;
+      } else if (tower.form === 3) {
+        tower.splashRadius = 50;
+        tower.slowFactor = 0.5;
+        tower.slowDuration = 2.0;
+      }
+    }
+
+    // Escalar por nivel (rango y rango de concatenación de Zeus)
+    for (let l = 1; l < tower.level; l++) {
+      tower.range = Math.round(tower.range * 1.0175);
+      if (tower.type === "ZEUS") {
+        tower.chainRange = Math.round(tower.chainRange * 1.0175);
+      }
+    }
+    tower.previousRange = tower.range;
+
+    // Calcular daño puro determinista
+    tower.damage = getTowerDamage(tower.type, tower.form, tower.level);
+    if (tower.type === "HADES") {
+      tower.maxDamage = getTowerDamage("HADES", tower.form, tower.level);
+      tower.damage = tower.maxDamage;
+    }
+
+    return tower;
   }
 
   findTarget(enemies) {

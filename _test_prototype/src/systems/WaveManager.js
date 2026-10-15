@@ -3,7 +3,7 @@
  * La oleada NO inicia automáticamente: el jugador siempre tiene el control de cuándo comenzar.
  */
 
-import { BALANCE } from '../config/balance.js';
+import { BALANCE, goldMultiplier } from '../config/balance.js';
 import { ENEMIES } from '../config/enemiesData.js';
 import { Enemy } from '../entities/Enemy.js';
 
@@ -17,9 +17,11 @@ export class WaveManager {
     this.isWaveActive = false; // El jugador decide cuándo empieza cada oleada
     this.isTutorialMode = false;
 
-    this.spawnQueue = [];
-    this.spawnTimer = 0;
-    this.spawnInterval = 0.85; // Segundos entre spawn de cada enemigo
+    // Canales de spawn concurrentes (permite que múltiples oleadas y entidades nazcan simultáneamente)
+    this.activeSpawners = [];
+    this.spawnQueueTotalHp = 0;
+    this.spawnInterval = 0.85; // Segundos base entre spawn de cada enemigo
+    this.callCooldown = 0; // Cooldown de 5 segundos para llamar o adelantar nueva oleada
     this.activeEnemies = [];
     this.totalEnemiesKilled = 0;
     this.enemiesLeakedThisWave = 0;
@@ -29,16 +31,34 @@ export class WaveManager {
   reset() {
     this.currentWave = 0;
     this.isWaveActive = false;
-    this.spawnQueue = [];
-    this.spawnTimer = 0;
+    this.activeSpawners = [];
+    this.spawnQueueTotalHp = 0;
+    this.callCooldown = 0;
     this.activeEnemies = [];
     this.totalEnemiesKilled = 0;
     this.enemiesLeakedThisWave = 0;
     this.currentWaveTotalHp = 0;
   }
 
+  // Getter de compatibilidad
+  get spawnQueue() {
+    const list = [];
+    for (const spawner of this.activeSpawners) {
+      list.push(...spawner.queue);
+    }
+    return list;
+  }
+
+  canTriggerNextWave() {
+    return this.callCooldown <= 0;
+  }
+
   getEnemiesRemaining() {
-    return this.spawnQueue.length + this.activeEnemies.length;
+    let queued = 0;
+    for (const spawner of this.activeSpawners) {
+      queued += spawner.queue.length;
+    }
+    return queued + this.activeEnemies.length;
   }
 
   /**
@@ -50,7 +70,7 @@ export class WaveManager {
     }
 
     const nextWave = this.currentWave + 1;
-    const waveReward = BALANCE.BASE_WAVE_REWARD + nextWave * BALANCE.WAVE_REWARD_GROWTH;
+    const waveReward = (BALANCE.BASE_WAVE_REWARD + nextWave * BALANCE.WAVE_REWARD_GROWTH) * goldMultiplier(nextWave);
 
     // 1. Bonus Base: Premio mínimo garantizado
     const bonusBase = Math.round(waveReward * BALANCE.EARLY_WAVE_BASE_RATIO);
@@ -62,9 +82,7 @@ export class WaveManager {
         currentHpTotal += Math.max(0, enemy.hp);
       }
     }
-    for (const enemy of this.spawnQueue) {
-      currentHpTotal += (enemy.maxHp || enemy.hp || 0);
-    }
+    currentHpTotal += this.spawnQueueTotalHp;
 
     const ratioRemaining = currentHpTotal / Math.max(1, this.currentWaveTotalHp);
     let chaosFactor = 0;
@@ -84,8 +102,16 @@ export class WaveManager {
 
   /**
    * Llamar oleada manualmente (el jugador decide cuándo empieza cada oleada).
+   * Aplica un cooldown de 5 segundos para evitar sobrecarga y crasheos por spam.
    */
   triggerNextWave() {
+    if (!this.canTriggerNextWave()) {
+      return false;
+    }
+
+    // Activar cooldown de 5 segundos
+    this.callCooldown = BALANCE.WAVE_CALL_COOLDOWN || 5.0;
+
     // Si ya había una oleada activa en combate, se premia el riesgo con dracmas
     if (this.isWaveActive) {
       const bonus = this.getEarlyCallBonus();
@@ -102,9 +128,22 @@ export class WaveManager {
     // Generar la composición de la nueva oleada
     const newEnemies = this.generateWaveComposition(this.currentWave);
     for (const enemy of newEnemies) {
-      this.currentWaveTotalHp += (enemy.maxHp || enemy.hp || 0);
+      const hp = (enemy.maxHp || enemy.hp || 0);
+      this.currentWaveTotalHp += hp;
+      this.spawnQueueTotalHp += hp;
     }
-    this.spawnQueue.push(...newEnemies);
+
+    // Crear un canal de spawn independiente y concurrente para esta oleada
+    // timer = 0 permite que la primera entidad nazca INMEDIATAMENTE al adelantar la oleada
+    const interval = Math.max(0.45, this.spawnInterval - Math.min(0.35, this.currentWave * 0.02));
+    this.activeSpawners.push({
+      wave: this.currentWave,
+      queue: newEnemies,
+      timer: 0,
+      interval: interval
+    });
+
+    return true;
   }
 
   /**
@@ -119,9 +158,9 @@ export class WaveManager {
       for (let i = 0; i < 7; i++) {
         const enemy = new Enemy(ENEMIES.NORMAL, waypoints, wave);
         if (this.isTutorialMode && i === 6) {
-          // El 7mo soldado resiste con vida extra para alcanzar las puertas del Olimpo y enseñar la pérdida de vida
-          enemy.hp = 115;
-          enemy.maxHp = 115;
+          // El 7mo soldado resiste con vida colosal (550 HP) para superar el fuego cruzado de las 3 torres y alcanzar las puertas del Olimpo, enseñando pedagógicamente la pérdida de vida
+          enemy.hp = 550;
+          enemy.maxHp = 550;
         }
         list.push(enemy);
       }
@@ -195,13 +234,41 @@ export class WaveManager {
   }
 
   update(dt, onEnemyReachesExitCallback, onEnemyKilledCallback) {
-    // Spawn de enemigos desde la cola
-    if (this.spawnQueue.length > 0) {
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        const nextEnemy = this.spawnQueue.shift();
-        this.activeEnemies.push(nextEnemy);
-        this.spawnTimer = Math.max(0.4, this.spawnInterval - Math.min(0.35, this.currentWave * 0.02));
+    // Actualizar cooldown de llamada de oleada
+    if (this.callCooldown > 0) {
+      this.callCooldown = Math.max(0, this.callCooldown - dt);
+    }
+
+    // Spawn simultáneo: procesar concurrentemente cada canal de oleada activa
+    for (let sIdx = this.activeSpawners.length - 1; sIdx >= 0; sIdx--) {
+      const spawner = this.activeSpawners[sIdx];
+      if (spawner.queue.length > 0) {
+        spawner.timer -= dt;
+        if (spawner.timer <= 0) {
+          const nextEnemy = spawner.queue.shift();
+          const nextHp = (nextEnemy.maxHp || nextEnemy.hp || 0);
+          this.spawnQueueTotalHp = Math.max(0, this.spawnQueueTotalHp - nextHp);
+
+          // Leve variación lateral sobre el ancho del carril para legibilidad al spawnear juntos
+          nextEnemy.pos.y += (Math.random() - 0.5) * 16;
+          this.activeEnemies.push(nextEnemy);
+
+          // Si es una pareja Alóada, spawnear ambos simultáneamente
+          if (nextEnemy.partner && spawner.queue.includes(nextEnemy.partner)) {
+            const pIdx = spawner.queue.indexOf(nextEnemy.partner);
+            const partner = spawner.queue.splice(pIdx, 1)[0];
+            const partnerHp = (partner.maxHp || partner.hp || 0);
+            this.spawnQueueTotalHp = Math.max(0, this.spawnQueueTotalHp - partnerHp);
+            partner.pos.y += (Math.random() - 0.5) * 16;
+            this.activeEnemies.push(partner);
+          }
+
+          spawner.timer = spawner.interval;
+        }
+      }
+
+      if (spawner.queue.length === 0) {
+        this.activeSpawners.splice(sIdx, 1);
       }
     }
 
@@ -228,15 +295,39 @@ export class WaveManager {
     }
 
     // Comprobar si se eliminaron todos los enemigos llamados
-    if (this.isWaveActive && this.spawnQueue.length === 0 && this.activeEnemies.length === 0) {
+    const remainingQueued = this.activeSpawners.reduce((acc, s) => acc + s.queue.length, 0);
+    if (this.isWaveActive && remainingQueued === 0 && this.activeEnemies.length === 0) {
       this.isWaveActive = false;
       this.currentWaveTotalHp = 0;
+      this.spawnQueueTotalHp = 0;
       const leaked = this.enemiesLeakedThisWave;
-      const reward = BALANCE.BASE_WAVE_REWARD + this.currentWave * BALANCE.WAVE_REWARD_GROWTH;
+      const reward = (BALANCE.BASE_WAVE_REWARD + this.currentWave * BALANCE.WAVE_REWARD_GROWTH) * goldMultiplier(this.currentWave);
 
       if (this.onWaveCompleted) {
         this.onWaveCompleted(this.currentWave, reward, leaked);
       }
     }
+  }
+
+  serialize() {
+    return {
+      currentWave: this.currentWave,
+      totalEnemiesKilled: this.totalEnemiesKilled,
+      isWaveActive: this.isWaveActive
+    };
+  }
+
+  restore(data) {
+    if (!data) return;
+    this.reset();
+    // Si la partida se guardó mientras una oleada estaba en marcha,
+    // restauramos al inicio de esa oleada para que el jugador pueda disputarla limpiamente.
+    if (data.isWaveActive && data.currentWave > 0) {
+      this.currentWave = Math.max(0, data.currentWave - 1);
+    } else {
+      this.currentWave = data.currentWave || 0;
+    }
+    this.totalEnemiesKilled = data.totalEnemiesKilled || 0;
+    this.isWaveActive = false;
   }
 }
