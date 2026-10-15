@@ -6,7 +6,7 @@
 import { Vector2 } from '../core/Vector2.js';
 import { Projectile } from './Projectile.js';
 import { RoadBomb } from './RoadBomb.js';
-import { BALANCE } from '../config/balance.js';
+import { BALANCE, getTowerDamage } from '../config/balance.js';
 
 let towerIdCounter = 1;
 
@@ -37,7 +37,7 @@ export class Tower {
     this.baseCost = config.cost;
     this.totalInvested = config.cost;
 
-    this.damage = config.damage || config.baseDamage || 18;
+    this.damage = getTowerDamage(this.type, this.form, this.level);
     this.baseRange = config.range || 120;
     this.range = this.baseRange;
     this.fireRate = config.fireRate || 1.0;
@@ -66,8 +66,13 @@ export class Tower {
     this.attackSpeedMultiplier = 1.0; // Buff temporal de Cronos
 
     // Atributos de Hades (Torre Infernal con soporte de hasta 3 rayos simultáneos en Forma 3)
-    this.baseDamage = config.baseDamage || 12;
-    this.maxDamage = config.maxDamage || 95;
+    this.baseDamage = config.baseDamage || 15;
+    this.maxDamage = this.type === "HADES"
+      ? getTowerDamage("HADES", this.form, this.level)
+      : (config.maxDamage || 95);
+    if (this.type === "HADES") {
+      this.damage = this.maxDamage;
+    }
     this.rampTime = config.rampTime || 3.0;
     this.beamChannelTime = 0;
     this.hadesBeams = []; // Array de { target, channelTime } para rayos simultáneos
@@ -189,14 +194,31 @@ export class Tower {
 
     // Guardar rango anterior e iniciar timer de 0.5s para resaltar el aumento de rango
     this.previousRange = this.range;
-    this.damage = Math.round(this.damage * BALANCE.UPGRADE_DAMAGE_MULT);
-    this.maxDamage = Math.round(this.maxDamage * BALANCE.UPGRADE_DAMAGE_MULT);
+    this.damage = getTowerDamage(this.type, this.form, this.level);
+    if (this.type === "HADES") {
+      this.maxDamage = getTowerDamage("HADES", this.form, this.level);
+      this.damage = this.maxDamage;
+    }
     this.range = Math.round(this.range * 1.0175); // Reducido a la mitad: +1.75% de incremento por nivel
     if (this.type === "ZEUS") {
       this.chainRange = Math.round(this.chainRange * 1.0175);
     }
     this.rangeGrowthTimer = 0.5;
     return true;
+  }
+
+  getDamage(form = this.form, level = this.level) {
+    return getTowerDamage(this.type, form, level);
+  }
+
+  getNextLevelDamage() {
+    if (this.level >= this.maxLevel) return this.damage;
+    return getTowerDamage(this.type, this.form, this.level + 1);
+  }
+
+  getNextFormDamage() {
+    if (this.form >= 3) return this.damage;
+    return getTowerDamage(this.type, this.form + 1, 1);
   }
 
   /**
@@ -213,7 +235,11 @@ export class Tower {
 
     // Guardar rango anterior e iniciar timer de 0.5s para resaltar el cambio de rango
     this.previousRange = this.range;
-    this.damage = Math.round(this.damage * BALANCE.EVOLVE_DAMAGE_MULT);
+    this.damage = getTowerDamage(this.type, this.form, 1);
+    if (this.type === "HADES") {
+      this.maxDamage = getTowerDamage("HADES", this.form, 1);
+      this.damage = this.maxDamage;
+    }
 
     // Ajustes de alcance por dios y forma según especificación técnica:
     if (this.type === "ZEUS") {
@@ -287,10 +313,8 @@ export class Tower {
     } else if (this.type === "HADES") {
       if (this.form === 2) {
         this.rampTime = 2.5; // Rampa más rápida y desbloqueo de objetivo de mayor vida
-        this.maxDamage = Math.round(this.maxDamage * BALANCE.HADES_FORM2_MAXDAMAGE_MULT);
       } else if (this.form === 3) {
         this.rampTime = 1.3;
-        this.maxDamage = Math.round(this.maxDamage * BALANCE.HADES_FORM3_MAXDAMAGE_MULT);
       }
     } else if (this.type === "POSEIDON") {
       if (this.form === 2) {

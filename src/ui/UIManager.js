@@ -4,6 +4,7 @@
 
 import { TOWERS } from '../config/towersData.js';
 import { POWERS_DATA } from '../config/powersData.js';
+import { getTowerDamage } from '../config/balance.js';
 
 export class UIManager {
   constructor(handlers) {
@@ -667,6 +668,10 @@ export class UIManager {
     if (this.upgradeCost) this.upgradeCost.textContent = cost;
     if (this.sellRefund) this.sellRefund.textContent = refund;
 
+    // Previsualización de daño con la función pura getTowerDamage
+    const nextLevelDamage = tower.getNextLevelDamage ? tower.getNextLevelDamage() : getTowerDamage(tower.type, tower.form, tower.level + 1);
+    const nextFormDamage = tower.getNextFormDamage ? tower.getNextFormDamage() : getTowerDamage(tower.type, tower.form + 1, 1);
+
     // Botón de Nivel (1 a 10)
     this.upgradeBtn.disabled = !canAffordUpgrade;
     this.upgradeBtn.style.opacity = canAffordUpgrade ? "1" : "0.5";
@@ -674,9 +679,11 @@ export class UIManager {
     if (tower.level >= tower.maxLevel) {
       if (this.upgradeBtnText) this.upgradeBtnText.textContent = "Nivel Máx. (10)";
       if (this.upgradeCostWrapper) this.upgradeCostWrapper.style.display = "none";
+      this.upgradeBtn.title = "Nivel máximo alcanzado";
     } else {
       if (this.upgradeBtnText) this.upgradeBtnText.textContent = "Nivel";
       if (this.upgradeCostWrapper) this.upgradeCostWrapper.style.display = "";
+      this.upgradeBtn.title = `Mejorar a Nivel ${tower.level + 1} (Daño: ${nextLevelDamage})`;
     }
 
     // Comprobar si es Ares en Forma 1 (ofrece elección de rama permanente para Forma 2)
@@ -691,6 +698,13 @@ export class UIManager {
       this.aresMinesBtn.disabled = !canAffordEvolve;
       this.aresShrapnelBtn.style.opacity = canAffordEvolve ? "1" : "0.5";
       this.aresMinesBtn.style.opacity = canAffordEvolve ? "1" : "0.5";
+
+      if (this.aresShrapnelBtn) {
+        this.aresShrapnelBtn.title = `💥 Esquirlas F2 (Daño Nv.1: ${nextFormDamage})`;
+      }
+      if (this.aresMinesBtn) {
+        this.aresMinesBtn.title = `💣 Bombas F2 (Daño Nv.1: ${nextFormDamage})`;
+      }
 
       if (this.aresShrapnelDiscount) {
         if (discount > 0) {
@@ -722,14 +736,15 @@ export class UIManager {
         if (this.evolveCostWrapper) this.evolveCostWrapper.style.display = "";
         if (this.evolveCost) this.evolveCost.textContent = evolveCost;
 
+        const discountText = discount > 0 ? ` [Descuento -${discount} 🪙 por ${tower.level - 1} niveles]` : "";
+        this.evolveBtn.title = `Evolucionar a Forma ${nextFormNum} (Daño Nv.1: ${nextFormDamage})${discountText}`;
+
         if (this.evolveDiscountBadge) {
           if (discount > 0) {
             this.evolveDiscountBadge.textContent = ` -${discount}`;
             this.evolveDiscountBadge.style.display = "";
-            this.evolveBtn.title = `¡Descuento de ${discount} 🪙 aplicado por tus ${tower.level - 1} niveles previos!`;
           } else {
             this.evolveDiscountBadge.style.display = "none";
-            this.evolveBtn.title = "Evoluciona a cualquier nivel para potenciar su poder divino";
           }
         }
       } else {

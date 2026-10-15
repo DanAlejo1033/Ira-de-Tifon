@@ -3,6 +3,8 @@
  * Como establece el GDD: todos los números en un solo lugar para calibración iterativa.
  */
 
+import { TOWERS } from './towersData.js';
+
 export const BALANCE = {
   // Dimensiones del tablero
   CANVAS_WIDTH: 1024,
@@ -32,19 +34,48 @@ export const BALANCE = {
   // Escalado de dificultad exponencial por oleada para la vida de los enemigos
   ENEMY_HP_GROWTH: 1.1,
 
-  // Crecimiento de oro por tramos de oleadas
+  // Crecimiento de oro por tramos de oleadas (valores definitivos calibrados)
   GOLD_GROWTH_STAGES: [
-    { fromWave: 1,  base: 1.05  },
-    { fromWave: 30, base: 1.056 },
-    { fromWave: 60, base: 1.02  },
+    { fromWave: 1,  base: 1.00  },   // oleadas 1-30: SIN cambios (la economía inicial queda intacta)
+    { fromWave: 30, base: 1.046 },   // oleadas 30-60: el oro crece un 4.6% por oleada
+    { fromWave: 60, base: 1.02  },   // desde la 60: crece más lento que la vida, así el jugador se queda atrás
   ],
 
-  // Multiplicadores de daño y evolución de torres (escalado reducido a la mitad)
-  UPGRADE_DAMAGE_MULT: 1.125,        // +12.5% de daño por nivel (antes +25%)
-  EVOLVE_DAMAGE_MULT: 1.225,         // +22.5% de daño por evolución de forma (antes +45%)
-  HADES_FORM2_MAXDAMAGE_MULT: 1.4,   // +40% de daño máximo en Forma 2 (antes +80%)
-  HADES_FORM3_MAXDAMAGE_MULT: 1.5    // +50% de daño máximo en Forma 3 (antes +100%)
+  // Escalado de daño de torres independiente de mejoras previas
+  UPGRADE_DAMAGE_MULT: 1.25,
+  FORM_LEVEL1_DAMAGE: {          // Daño en nivel 1 de cada forma (Forma 1 usa towersData.js)
+    HERCULES: { 2: 194.4, 3: 2100.6 },
+    ARTEMISA: { 2: 194.4, 3: 2100.6 },
+    ZEUS:     { 2: 280.8, 3: 3034.2 },
+    ARES:     { 2: 453.6, 3: 4901.4 },
+    POSEIDON: { 2: 151.2, 3: 1633.8 },
+    HADES:    { 2: 1340,  3: 19990  },   // se aplican sobre maxDamage; baseDamage de Hades (rampa) no cambia
+  }
 };
+
+/**
+ * Función única de cálculo de daño puro de torre según (tipo, forma, nivel).
+ * Calcula siempre desde la base de cada forma sin arrastrar redondeos previos:
+ * damage(tipo, forma, nivel) = Math.round(daño_nivel1_de_la_forma × UPGRADE_DAMAGE_MULT^(nivel-1))
+ */
+export function getTowerDamage(type, form, level = 1) {
+  const normType = (type === "ARTEMISA") ? "HERCULES" : type;
+  let level1Damage;
+
+  if (form === 1) {
+    if (normType === "HADES") {
+      level1Damage = TOWERS.HADES.maxDamage; // 150
+    } else {
+      const conf = TOWERS[normType];
+      level1Damage = conf ? conf.damage : 40;
+    }
+  } else {
+    const table = BALANCE.FORM_LEVEL1_DAMAGE[normType];
+    level1Damage = (table && table[form] !== undefined) ? table[form] : (TOWERS[normType]?.damage || 40);
+  }
+
+  return Math.round(level1Damage * Math.pow(BALANCE.UPGRADE_DAMAGE_MULT, level - 1));
+}
 
 export function goldMultiplier(wave) {
   const st = BALANCE.GOLD_GROWTH_STAGES;
