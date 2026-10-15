@@ -479,7 +479,7 @@ class Game {
     if (Array.isArray(matchData.towers)) {
       for (const tData of matchData.towers) {
         const tower = Tower.deserialize(tData, this.grid);
-        if (tower) {
+        if (tower && !this.grid.getTowerAt(tower.col, tower.row)) {
           this.grid.setTowerAt(tower.col, tower.row, tower);
           this.towersList.push(tower);
         }

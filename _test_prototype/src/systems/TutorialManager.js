@@ -624,6 +624,9 @@ export class TutorialManager {
     this.progress.completeTutorial();
     this.ui.hideAthenaBanner();
     this.ui.showAthenaMessage("Tutorial omitido. ¡Defiende el Olimpo a tu manera, estratega!", 3000);
+    if (this.game && this.game.saveActiveMatchState) {
+      this.game.saveActiveMatchState();
+    }
   }
 
   finish(isTrophySuccess = false) {
@@ -640,6 +643,9 @@ export class TutorialManager {
 
     if (isTrophySuccess) {
       this.ui.showAthenaMessage("¡Tutorial completado! Zeus domina el Rayo en Cadena. ¡Busca llevarlo a Forma 3 y defiende el Monte Olimpo!", 6000);
+    }
+    if (this.game && this.game.saveActiveMatchState) {
+      this.game.saveActiveMatchState();
     }
   }
 

@@ -340,13 +340,19 @@ export class Tower {
       form: this.form,
       level: this.level,
       totalInvested: this.totalInvested,
-      aresBranch: this.aresBranch || null
+      aresBranch: this.aresBranch || null,
+      range: this.range,
+      chainRange: this.chainRange || null
     };
   }
 
   static deserialize(data, grid, towersConfig = TOWERS) {
+    if (!data || !data.type) return null;
     const config = towersConfig[data.type];
     if (!config) return null;
+
+    if (typeof data.col !== 'number' || typeof data.row !== 'number') return null;
+    if (data.col < 0 || data.col >= grid.cols || data.row < 0 || data.row >= grid.rows) return null;
 
     const pixelCenter = grid.gridToPixelCenter(data.col, data.row);
     const tower = new Tower(config, data.col, data.row, pixelCenter);
@@ -407,6 +413,14 @@ export class Tower {
       if (tower.type === "ZEUS") {
         tower.chainRange = Math.round(tower.chainRange * 1.0175);
       }
+    }
+
+    // Si los datos serializados traían el rango exacto, preservarlo con precisión absoluta
+    if (typeof data.range === 'number' && data.range > 0) {
+      tower.range = data.range;
+    }
+    if (typeof data.chainRange === 'number' && data.chainRange > 0) {
+      tower.chainRange = data.chainRange;
     }
     tower.previousRange = tower.range;
 

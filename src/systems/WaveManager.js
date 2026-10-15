@@ -53,6 +53,10 @@ export class WaveManager {
     return this.callCooldown <= 0;
   }
 
+  get isWaitingNextWave() {
+    return !this.isWaveActive;
+  }
+
   getEnemiesRemaining() {
     let queued = 0;
     for (const spawner of this.activeSpawners) {
